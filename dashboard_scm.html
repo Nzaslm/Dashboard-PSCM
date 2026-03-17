@@ -3,630 +3,941 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard Supply Chain</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Dashboard PSCM</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
-  :root {
-    --bg:#0d0f12;--bg2:#141720;--bg3:#1c2030;--bg4:#222638;
-    --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
-    --text:#e8eaf0;--text2:#8a8fa8;--text3:#555d7a;
-    --blue:#4b8cf5;--blue-dim:rgba(75,140,245,0.15);
-    --green:#2dd4a0;--green-dim:rgba(45,212,160,0.15);
-    --red:#f5604b;--red-dim:rgba(245,96,75,0.15);
-    --amber:#f5a623;--amber-dim:rgba(245,166,35,0.15);
-    --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.15);
-    --radius:12px;--radius-sm:8px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
-  .sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100}
-  .sidebar-brand{padding:24px 20px 20px;border-bottom:1px solid var(--border)}
-  .brand-icon{width:36px;height:36px;background:var(--blue);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
-  .brand-icon svg{width:20px;height:20px;fill:white}
-  .brand-name{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.3px}
-  .brand-sub{font-size:11px;color:var(--text3);margin-top:2px;font-family:'DM Mono',monospace}
-  .nav-section{padding:16px 12px 8px}
-  .nav-label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase;padding:0 8px;margin-bottom:6px}
-  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-sm);cursor:pointer;color:var(--text2);font-size:13px;font-weight:400;transition:all .15s;border:none;background:none;width:100%;text-align:left}
-  .nav-item:hover{background:var(--bg3);color:var(--text)}
-  .nav-item.active{background:var(--blue-dim);color:var(--blue);font-weight:500}
-  .nav-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-  .nav-icon svg{width:16px;height:16px}
-  .sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid var(--border)}
-  .live-badge{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);font-family:'DM Mono',monospace}
-  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s ease-in-out infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-  .main{margin-left:220px;min-height:100vh;display:flex;flex-direction:column}
-  .topbar{padding:20px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);position:sticky;top:0;z-index:50}
-  .topbar-left h1{font-size:16px;font-weight:600;color:var(--text);letter-spacing:-0.3px}
-  .topbar-left p{font-size:12px;color:var(--text3);margin-top:2px;font-family:'DM Mono',monospace}
-  .topbar-right{display:flex;align-items:center;gap:10px}
-  .date-badge{font-size:11px;color:var(--text2);background:var(--bg3);padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);font-family:'DM Mono',monospace}
-  .refresh-btn{font-size:11px;color:var(--text2);background:var(--bg3);padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);font-family:'DM Mono',monospace;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
-  .refresh-btn:hover{border-color:var(--border2);color:var(--text)}
-  .refresh-btn svg{width:13px;height:13px}
-  .content{padding:24px 28px;flex:1}
-  .tab-content{display:none}
-  .tab-content.active{display:block;animation:fadeIn .2s ease}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
-  .kpi-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
-  .kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden;transition:border-color .2s}
-  .kpi-card:hover{border-color:var(--border2)}
-  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--radius) var(--radius) 0 0}
-  .kpi-card.blue::before{background:var(--blue)}.kpi-card.green::before{background:var(--green)}
-  .kpi-card.red::before{background:var(--red)}.kpi-card.amber::before{background:var(--amber)}
-  .kpi-card.purple::before{background:var(--purple)}
-  .kpi-label{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
-  .kpi-value{font-size:26px;font-weight:300;color:var(--text);letter-spacing:-1px;font-family:'DM Mono',monospace;line-height:1;margin-bottom:8px}
-  .kpi-sub{font-size:11px;display:flex;align-items:center;gap:4px}
-  .kpi-sub.good{color:var(--green)}.kpi-sub.warn{color:var(--amber)}.kpi-sub.bad{color:var(--red)}.kpi-sub.neu{color:var(--text3)}
-  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-  .chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:border-color .2s}
-  .chart-card:hover{border-color:var(--border2)}.chart-card.full{grid-column:1/-1}
-  .chart-head{margin-bottom:16px}
-  .chart-title{font-size:13px;font-weight:500;color:var(--text)}
-  .chart-desc{font-size:11px;color:var(--text3);margin-top:3px;font-family:'DM Mono',monospace}
-  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px}
-  .leg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)}
-  .leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-  .section-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
-  .table-wrap{overflow-x:auto}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  thead tr{border-bottom:1px solid var(--border)}
-  th{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);padding:10px 12px;text-align:left}
-  td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text2);font-family:'DM Mono',monospace;font-size:12px}
-  tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg3)}
-  .pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;font-family:'DM Sans',sans-serif;letter-spacing:.3px;text-transform:uppercase}
-  .pill-g{background:var(--green-dim);color:var(--green)}.pill-w{background:var(--amber-dim);color:var(--amber)}.pill-r{background:var(--red-dim);color:var(--red)}
-  .alert{background:var(--red-dim);border:1px solid rgba(245,96,75,.3);border-radius:var(--radius-sm);padding:12px 16px;font-size:12px;color:var(--red);margin-bottom:18px;display:flex;align-items:center;gap:10px}
-  .loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px}
-  .spinner{width:36px;height:36px;border:2px solid var(--bg4);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .loading-text{font-size:13px;color:var(--text2);font-family:'DM Mono',monospace}
-  .error-banner{background:var(--red-dim);border:1px solid rgba(245,96,75,.3);border-radius:var(--radius-sm);padding:12px 16px;font-size:12px;color:var(--red);margin-bottom:18px;display:none;align-items:center;gap:10px}
-  ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+:root {
+  --bg:       #080a0f;
+  --bg2:      #0e1118;
+  --bg3:      #141820;
+  --bg4:      #1c2130;
+  --bg5:      #242a3a;
+  --border:   rgba(255,255,255,0.06);
+  --border2:  rgba(255,255,255,0.11);
+  --text:     #dde2f0;
+  --text2:    #7a84a0;
+  --text3:    #424d66;
+  --blue:     #3d87f5;
+  --blue2:    #1a5fd4;
+  --green:    #22d9a0;
+  --red:      #f0564a;
+  --amber:    #f5a623;
+  --purple:   #9d7ff5;
+  --cyan:     #22c5d9;
+  --r: 14px; --rs: 9px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px}
+
+/* ── LAYOUT ── */
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:200px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-brand{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.sb-logo{width:32px;height:32px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.sb-logo svg{width:17px;height:17px;fill:white}
+.sb-title{font-size:13px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.sb-sub{font-size:10px;color:var(--text3);margin-top:1px;font-family:'JetBrains Mono',monospace}
+.sb-nav{padding:12px 8px;flex:1;overflow-y:auto}
+.sb-group{font-size:9px;font-weight:700;color:var(--text3);letter-spacing:1.2px;text-transform:uppercase;padding:0 8px;margin:12px 0 5px}
+.sb-group:first-child{margin-top:0}
+.nav-btn{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:none;background:none;color:var(--text2);font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:500;border-radius:var(--rs);cursor:pointer;transition:all .15s;text-align:left}
+.nav-btn:hover{background:var(--bg3);color:var(--text)}
+.nav-btn.active{background:rgba(61,135,245,.13);color:var(--blue);font-weight:600}
+.nav-btn svg{width:15px;height:15px;flex-shrink:0;opacity:.7}
+.nav-btn.active svg{opacity:1}
+.sb-footer{padding:12px 16px;border-top:1px solid var(--border)}
+.live-row{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,217,160,.4)}50%{opacity:.5;box-shadow:0 0 0 4px rgba(34,217,160,0)}}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* TOPBAR */
+.topbar{padding:0 24px;height:54px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.tb-left{display:flex;align-items:center;gap:12px}
+.tb-title{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px}
+.tb-right{display:flex;align-items:center;gap:8px}
+.tb-badge{font-size:10px;color:var(--text2);background:var(--bg3);padding:5px 11px;border-radius:var(--rs);border:1px solid var(--border);font-family:'JetBrains Mono',monospace}
+.tb-btn{font-size:11px;color:var(--text2);background:var(--bg3);padding:5px 11px;border-radius:var(--rs);border:1px solid var(--border);font-family:'JetBrains Mono',monospace;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s}
+.tb-btn:hover{border-color:var(--border2);color:var(--text)}
+.tb-btn svg{width:12px;height:12px}
+
+/* DATE CONTROL BAR */
+.datebar{padding:10px 24px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.datebar-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap}
+.date-tabs{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.date-tab{padding:5px 12px;border-radius:var(--rs);font-size:11px;font-weight:500;font-family:'JetBrains Mono',monospace;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text3);transition:all .15s;white-space:nowrap}
+.date-tab:hover{border-color:var(--border2);color:var(--text2)}
+.date-tab.active{background:rgba(61,135,245,.15);border-color:rgba(61,135,245,.4);color:var(--blue)}
+.date-tab.all{background:rgba(61,135,245,.08);border-color:rgba(61,135,245,.25);color:var(--blue);font-weight:700}
+.date-tab.all.active{background:rgba(61,135,245,.22);border-color:var(--blue)}
+
+/* SCROLL AREA */
+.scroll{flex:1;overflow-y:auto;padding:20px 24px}
+.scroll::-webkit-scrollbar{width:5px}
+.scroll::-webkit-scrollbar-track{background:transparent}
+.scroll::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:3px}
+
+/* PAGES */
+.page{display:none}
+.page.active{display:block}
+
+/* KPI GRIDS */
+.kpi-row{display:grid;gap:12px;margin-bottom:16px}
+.kpi-4{grid-template-columns:repeat(4,1fr)}
+.kpi-3{grid-template-columns:repeat(3,1fr)}
+.kpi-5{grid-template-columns:repeat(5,1fr)}
+
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:border-color .2s,transform .15s}
+.kpi:hover{border-color:var(--border2);transform:translateY(-1px)}
+.kpi-accent{position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--r) var(--r) 0 0}
+.kpi-lbl{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
+.kpi-val{font-size:24px;font-weight:300;font-family:'JetBrains Mono',monospace;letter-spacing:-1px;color:var(--text);line-height:1;margin-bottom:6px}
+.kpi-sub{font-size:10px;display:flex;align-items:center;gap:3px}
+.kpi-sub.g{color:var(--green)}.kpi-sub.w{color:var(--amber)}.kpi-sub.r{color:var(--red)}.kpi-sub.n{color:var(--text3)}
+
+/* CHART GRIDS */
+.cg2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.cg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.cg-full{margin-bottom:12px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px;transition:border-color .2s}
+.card:hover{border-color:var(--border2)}
+.card.span2{grid-column:span 2}
+.card-head{margin-bottom:14px}
+.card-title{font-size:12px;font-weight:600;color:var(--text)}
+.card-sub{font-size:10px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.leg-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+.leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)}
+.ld{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+
+/* DAILY SNAPSHOT */
+.snap-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.snap{background:var(--bg3);border-radius:var(--rs);padding:12px 14px;border:1px solid var(--border)}
+.snap-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:5px}
+.snap-val{font-size:18px;font-weight:400;font-family:'JetBrains Mono',monospace;color:var(--text);letter-spacing:-.5px}
+.snap-note{font-size:9px;margin-top:3px}
+.snap-note.g{color:var(--green)}.snap-note.w{color:var(--amber)}.snap-note.r{color:var(--red)}.snap-note.n{color:var(--text3)}
+
+/* STATUS BADGE */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.badge-g{background:rgba(34,217,160,.12);color:var(--green)}
+.badge-w{background:rgba(245,166,35,.12);color:var(--amber)}
+.badge-r{background:rgba(240,86,74,.12);color:var(--red)}
+.badge-b{background:rgba(61,135,245,.12);color:var(--blue)}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead tr{border-bottom:1px solid var(--border)}
+th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);padding:9px 12px;text-align:left;white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text2);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+
+/* LOADING */
+.loader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:14px}
+.spin{width:34px;height:34px;border:2px solid var(--bg4);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace}
+
+/* DIVIDER LABEL */
+.div-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.div-label::before{content:'';width:3px;height:12px;border-radius:2px;background:var(--blue)}
+
+/* ALERT */
+.alert-bar{display:none;background:rgba(240,86,74,.08);border:1px solid rgba(240,86,74,.25);border-radius:var(--rs);padding:10px 14px;font-size:11px;color:var(--red);margin-bottom:14px;gap:8px;align-items:flex-start}
+.alert-bar svg{flex-shrink:0;margin-top:1px}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px;color:var(--text3);font-size:12px}
+
+/* COMPARISON */
+.cmp-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.cmp-row:last-child{border-bottom:none}
+.cmp-lbl{font-size:11px;color:var(--text2);flex:1}
+.cmp-bar-wrap{flex:2;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.cmp-bar{height:100%;border-radius:3px;transition:width .4s ease}
+.cmp-val{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text);min-width:60px;text-align:right}
 </style>
 </head>
 <body>
 
-<div class="loading-overlay" id="loading">
-  <div class="spinner"></div>
-  <div class="loading-text">Memuat data dari Google Sheets...</div>
+<div class="loader" id="loader">
+  <div class="spin"></div>
+  <div class="load-txt" id="load-msg">Mengambil data PSCM...</div>
 </div>
 
-<aside class="sidebar">
-  <div class="sidebar-brand">
-    <div class="brand-icon"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg></div>
-    <div class="brand-name">SCM Dashboard</div>
-    <div class="brand-sub">Supply Chain Monitor</div>
-  </div>
-  <div class="nav-section">
-    <div class="nav-label">Laporan</div>
-    <button class="nav-item active" onclick="showTab('overview',this)">
-      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Overview
-    </button>
-    <button class="nav-item" onclick="showTab('production',this)">
-      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 20h20M6 20V10l6-7 6 7v10M10 20v-5h4v5"/></svg></span>Production
-    </button>
-    <button class="nav-item" onclick="showTab('dc',this)">
-      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span>Distribution Center
-    </button>
-    <button class="nav-item" onclick="showTab('ppic',this)">
-      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>PPIC &amp; Stock
-    </button>
-    <button class="nav-item" onclick="showTab('purchasing',this)">
-      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg></span>Purchasing
-    </button>
-  </div>
-  <div class="sidebar-footer">
-    <div class="live-badge"><span class="live-dot"></span><span id="data-range">Memuat...</span></div>
-  </div>
-</aside>
-
-<main class="main">
-  <div class="topbar">
-    <div class="topbar-left">
-      <h1 id="page-title">Overview</h1>
-      <p>Production · DC · PPIC · Purchasing</p>
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg></div>
+      <div class="sb-title">PSCM Dashboard</div>
+      <div class="sb-sub">Production SCM</div>
     </div>
-    <div class="topbar-right">
-      <button class="refresh-btn" onclick="loadData()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Refresh
+    <div class="sb-nav">
+      <div class="sb-group">Menu</div>
+      <button class="nav-btn active" onclick="goPage('overview',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Overview
       </button>
-      <div class="date-badge" id="last-updated">—</div>
+      <button class="nav-btn" onclick="goPage('production',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M6 20V10l6-7 6 7v10M10 20v-5h4v5"/></svg>
+        Production
+      </button>
+      <button class="nav-btn" onclick="goPage('dc',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        Distribution Center
+      </button>
+      <button class="nav-btn" onclick="goPage('ppic',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        PPIC &amp; Stock
+      </button>
+      <button class="nav-btn" onclick="goPage('purchasing',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg>
+        Purchasing
+      </button>
     </div>
-  </div>
+    <div class="sb-footer">
+      <div class="live-row"><span class="pulse"></span><span id="live-range">Memuat...</span></div>
+    </div>
+  </aside>
 
-  <div class="content">
-    <div class="error-banner" id="error-banner">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span id="error-msg">Gagal memuat data.</span>
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="tb-left">
+        <div class="tb-title" id="page-ttl">Overview</div>
+        <span class="badge badge-g" id="mode-badge">Semua Tanggal</span>
+      </div>
+      <div class="tb-right">
+        <button class="tb-btn" onclick="loadData()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Refresh
+        </button>
+        <div class="tb-badge" id="last-upd">—</div>
+      </div>
     </div>
 
-    <!-- OVERVIEW -->
-    <div id="tab-overview" class="tab-content active">
-      <div class="alert" id="alert-banner" style="display:none">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span id="alert-text"></span>
-      </div>
-      <div class="kpi-grid">
-        <div class="kpi-card blue"><div class="kpi-label">Total Kirim ke DC</div><div class="kpi-value" id="kpi-shipped">—</div><div class="kpi-sub neu">Pcs akumulasi</div></div>
-        <div class="kpi-card amber"><div class="kpi-label">Reject Rate Avg</div><div class="kpi-value" id="kpi-reject">—</div><div class="kpi-sub warn">Target ≤ 0,65%</div></div>
-        <div class="kpi-card green"><div class="kpi-label">Akurasi Cycle Count</div><div class="kpi-value" id="kpi-acc">—</div><div class="kpi-sub good">Target 95%</div></div>
-        <div class="kpi-card red"><div class="kpi-label">DSI Stok</div><div class="kpi-value" id="kpi-dsi">—</div><div class="kpi-sub bad">Hari</div></div>
-      </div>
-      <div class="chart-grid">
-        <div class="chart-card">
-          <div class="chart-head"><div class="chart-title">Pengiriman ke DC vs Target Harian</div><div class="chart-desc">Output produksi aktual (Pcs)</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#4b8cf5"></span>Actual</span><span class="leg"><span class="leg-dot" style="background:#f5604b;opacity:.5"></span>Target 1.200</span></div>
-          <div style="position:relative;height:200px"><canvas id="c1"></canvas></div>
+    <!-- DATE CONTROL BAR -->
+    <div class="datebar">
+      <div class="datebar-label">Filter Tanggal</div>
+      <div class="date-tabs" id="date-tabs"></div>
+    </div>
+
+    <div class="scroll">
+
+      <!-- ========== OVERVIEW ========== -->
+      <div class="page active" id="page-overview">
+        <div class="alert-bar" id="alert-ov">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="alert-ov-txt"></span>
         </div>
-        <div class="chart-card">
-          <div class="chart-head"><div class="chart-title">Reject Rate Harian (%)</div><div class="chart-desc">Material + Proses gabungan</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#f5604b"></span>Reject Rate</span><span class="leg"><span class="leg-dot" style="background:#f5a623;opacity:.6"></span>Target 0,65%</span></div>
-          <div style="position:relative;height:200px"><canvas id="c2"></canvas></div>
+
+        <div class="kpi-row kpi-5">
+          <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-lbl">Barang ke DC</div><div class="kpi-val" id="ov-shipped">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--amber)"></div><div class="kpi-lbl">Reject Rate</div><div class="kpi-val" id="ov-rr">—</div><div class="kpi-sub" id="ov-rr-s">Target ≤0,65%</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-lbl">Akurasi CC</div><div class="kpi-val" id="ov-acc">—</div><div class="kpi-sub g">Target 95%</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div><div class="kpi-lbl">DSI Stok</div><div class="kpi-val" id="ov-dsi">—</div><div class="kpi-sub" id="ov-dsi-s">Hari</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div><div class="kpi-lbl">Overstock SKU</div><div class="kpi-val" id="ov-over">—</div><div class="kpi-sub" id="ov-over-s">SKU</div></div>
         </div>
-      </div>
-      <div class="chart-grid">
-        <div class="chart-card">
-          <div class="chart-head"><div class="chart-title">Komposisi SKU Status Stok</div><div class="chart-desc">Data terkini (OH + OD Store)</div></div>
-          <div class="legend">
-            <span class="leg"><span class="leg-dot" style="background:#f5604b"></span><span id="leg-over">Overstock</span></span>
-            <span class="leg"><span class="leg-dot" style="background:#f5a623"></span><span id="leg-crit">Critical</span></span>
-            <span class="leg"><span class="leg-dot" style="background:#4b8cf5"></span><span id="leg-under">Understock</span></span>
+
+        <div class="cg2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Output Produksi vs Target</div><div class="card-sub">Pcs/hari — After QC</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#3d87f5"></span>Actual</span><span class="leg"><span class="ld" style="background:#f0564a;opacity:.5"></span>Target</span></div>
+            <div style="position:relative;height:180px"><canvas id="ov-c1"></canvas></div>
           </div>
-          <div style="position:relative;height:200px"><canvas id="c3"></canvas></div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Reject Rate Harian</div><div class="card-sub">% — Target 0,65%</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#f0564a"></span>Reject Rate</span><span class="leg"><span class="ld" style="background:#f5a623;opacity:.6"></span>Target</span></div>
+            <div style="position:relative;height:180px"><canvas id="ov-c2"></canvas></div>
+          </div>
         </div>
-        <div class="chart-card">
-          <div class="chart-head"><div class="chart-title">DC Movement Trend</div><div class="chart-desc">Inbound vs Outbound harian (Pcs)</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#2dd4a0"></span>Outbound</span><span class="leg"><span class="leg-dot" style="background:#4b8cf5"></span>Inbound</span></div>
-          <div style="position:relative;height:200px"><canvas id="c4"></canvas></div>
-        </div>
-      </div>
-    </div>
 
-    <!-- PRODUCTION -->
-    <div id="tab-production" class="tab-content">
-      <div class="kpi-grid">
-        <div class="kpi-card blue"><div class="kpi-label">Manpower Aktif</div><div class="kpi-value" id="kpi-mp">—</div><div class="kpi-sub good">Target 14 orang</div></div>
-        <div class="kpi-card green"><div class="kpi-label">Produktivitas Avg</div><div class="kpi-value" id="kpi-prod">—</div><div class="kpi-sub neu">Pcs/Hari/Orang</div></div>
-        <div class="kpi-card amber"><div class="kpi-label">Sisa Defect Rework</div><div class="kpi-value" id="kpi-defect">—</div><div class="kpi-sub warn">Stok rework tersisa</div></div>
-        <div class="kpi-card green"><div class="kpi-label">FG Rework Selesai</div><div class="kpi-value" id="kpi-rework">—</div><div class="kpi-sub good">Target 200</div></div>
-      </div>
-      <div class="chart-grid">
-        <div class="chart-card full">
-          <div class="chart-head"><div class="chart-title">Output Produksi Aktual vs Target</div><div class="chart-desc">After QC (Pcs/hari)</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#4b8cf5"></span>Actual</span><span class="leg"><span class="leg-dot" style="background:#f5604b;opacity:.5"></span>Target 1.000</span></div>
-          <div style="position:relative;height:220px"><canvas id="c5"></canvas></div>
+        <div class="cg3">
+          <div class="card">
+            <div class="card-head"><div class="card-title">SKU Status Stok</div><div class="card-sub">OH + OD Store — terkini</div></div>
+            <div class="leg-row">
+              <span class="leg"><span class="ld" style="background:#f0564a"></span><span id="leg-ov-over">Overstock</span></span>
+              <span class="leg"><span class="ld" style="background:#f5a623"></span><span id="leg-ov-crit">Critical</span></span>
+              <span class="leg"><span class="ld" style="background:#3d87f5"></span><span id="leg-ov-under">Understock</span></span>
+            </div>
+            <div style="position:relative;height:180px"><canvas id="ov-c3"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">DC Movement</div><div class="card-sub">Inbound vs Outbound</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#22d9a0"></span>Outbound</span><span class="leg"><span class="ld" style="background:#3d87f5"></span>Inbound</span></div>
+            <div style="position:relative;height:180px"><canvas id="ov-c4"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">DSI Stok Trend</div><div class="card-sub">Days Sales Inventory</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#9d7ff5"></span>DSI (Hari)</span></div>
+            <div style="position:relative;height:180px"><canvas id="ov-c5"></canvas></div>
+          </div>
         </div>
-      </div>
-      <div class="chart-grid">
-        <div class="chart-card">
-          <div class="chart-head"><div class="chart-title">Reject Material &amp; Proses (Pcs)</div><div class="chart-desc">Trend harian</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#f5604b"></span>Material</span><span class="leg"><span class="leg-dot" style="background:#f5a623"></span>Proses</span></div>
-          <div style="position:relative;height:200px"><canvas id="c6"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-head"><div class="chart-title">Produktivitas (Pcs/Hari/Orang)</div><div class="chart-desc">Vs target 71,4</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#2dd4a0"></span>Aktual</span></div>
-          <div style="position:relative;height:200px"><canvas id="c7"></canvas></div>
-        </div>
-      </div>
-    </div>
 
-    <!-- DC -->
-    <div id="tab-dc" class="tab-content">
-      <div class="kpi-grid">
-        <div class="kpi-card green"><div class="kpi-label">Total Outbound</div><div class="kpi-value" id="kpi-out">—</div><div class="kpi-sub neu">Pcs akumulasi</div></div>
-        <div class="kpi-card blue"><div class="kpi-label">Total Inbound</div><div class="kpi-value" id="kpi-in">—</div><div class="kpi-sub neu">Pcs akumulasi</div></div>
-        <div class="kpi-card green"><div class="kpi-label">Akurasi Cycle Count</div><div class="kpi-value" id="kpi-acc2">—</div><div class="kpi-sub good">Target 95%</div></div>
-        <div class="kpi-card amber"><div class="kpi-label">Manpower DC</div><div class="kpi-value" id="kpi-mpdc">—</div><div class="kpi-sub warn">Target 8 orang</div></div>
-      </div>
-      <div class="chart-grid">
-        <div class="chart-card full">
-          <div class="chart-head"><div class="chart-title">Total Movement DC (Pcs/hari)</div><div class="chart-desc">Inbound + Outbound gabungan</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#a78bfa"></span>Total Movement</span><span class="leg"><span class="leg-dot" style="background:#2dd4a0"></span>Outbound</span><span class="leg"><span class="leg-dot" style="background:#4b8cf5"></span>Inbound</span></div>
-          <div style="position:relative;height:220px"><canvas id="c8"></canvas></div>
+        <div class="div-label">Perbandingan Produktivitas per Hari</div>
+        <div class="card cg-full">
+          <div id="prod-cmp-list"></div>
         </div>
       </div>
-      <div class="chart-grid">
-        <div class="chart-card">
-          <div class="chart-head"><div class="chart-title">Akurasi Cycle Count (%)</div><div class="chart-desc">Target: 95%</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#2dd4a0"></span>Akurasi</span><span class="leg"><span class="leg-dot" style="background:#f5604b;opacity:.5"></span>Target 95%</span></div>
-          <div style="position:relative;height:200px"><canvas id="c9"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-head"><div class="chart-title">SKU Cycle Count: Hit vs Miss</div><div class="chart-desc">Per hari</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#2dd4a0"></span>Hit</span><span class="leg"><span class="leg-dot" style="background:#f5604b"></span>Miss</span></div>
-          <div style="position:relative;height:200px"><canvas id="c10"></canvas></div>
-        </div>
-      </div>
-    </div>
 
-    <!-- PPIC -->
-    <div id="tab-ppic" class="tab-content">
-      <div class="kpi-grid">
-        <div class="kpi-card red"><div class="kpi-label">Overstock (OH+OD)</div><div class="kpi-value" id="kpi-over">—</div><div class="kpi-sub bad">SKU</div></div>
-        <div class="kpi-card green"><div class="kpi-label">Understock (OH+OD)</div><div class="kpi-value" id="kpi-under">—</div><div class="kpi-sub good">SKU</div></div>
-        <div class="kpi-card amber"><div class="kpi-label">Critical Stock</div><div class="kpi-value" id="kpi-crit">—</div><div class="kpi-sub warn">Perlu monitoring</div></div>
-        <div class="kpi-card red"><div class="kpi-label">DSI Stok</div><div class="kpi-value" id="kpi-dsi2">—</div><div class="kpi-sub bad">Hari</div></div>
-      </div>
-      <div class="chart-grid">
-        <div class="chart-card full">
-          <div class="chart-head"><div class="chart-title">Trend SKU Status (OH + OD Store)</div><div class="chart-desc">Overstock vs Understock vs Critical</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#f5604b"></span>Overstock</span><span class="leg"><span class="leg-dot" style="background:#f5a623"></span>Critical</span><span class="leg"><span class="leg-dot" style="background:#4b8cf5"></span>Understock</span></div>
-          <div style="position:relative;height:240px"><canvas id="c11"></canvas></div>
+      <!-- ========== PRODUCTION ========== -->
+      <div class="page" id="page-production">
+        <div class="kpi-row kpi-4">
+          <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-lbl">Output After QC</div><div class="kpi-val" id="pr-out">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-lbl">Manpower</div><div class="kpi-val" id="pr-mp">—</div><div class="kpi-sub n">Orang</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--amber)"></div><div class="kpi-lbl">Produktivitas</div><div class="kpi-val" id="pr-prod">—</div><div class="kpi-sub n">Pcs/Hari/Org</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div><div class="kpi-lbl">Reject Rate</div><div class="kpi-val" id="pr-rr">—</div><div class="kpi-sub" id="pr-rr-s">%</div></div>
         </div>
-      </div>
-      <div class="chart-grid">
-        <div class="chart-card">
-          <div class="chart-head"><div class="chart-title">DSI (Days Sales Inventory)</div><div class="chart-desc">Trend DSI stok</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#a78bfa"></span>DSI (Hari)</span></div>
-          <div style="position:relative;height:200px"><canvas id="c12"></canvas></div>
+        <div class="kpi-row kpi-4">
+          <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div><div class="kpi-lbl">Barang Dikirim DC</div><div class="kpi-val" id="pr-ship">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div><div class="kpi-lbl">Reject Material</div><div class="kpi-val" id="pr-rm">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--amber)"></div><div class="kpi-lbl">Reject Proses</div><div class="kpi-val" id="pr-rp">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--cyan)"></div><div class="kpi-lbl">Sisa Defect Rework</div><div class="kpi-val" id="pr-def">—</div><div class="kpi-sub n">Pcs</div></div>
         </div>
-        <div class="chart-card">
-          <div class="chart-head"><div class="chart-title">WIP &amp; OD Trend</div><div class="chart-desc">Work in Progress &amp; On Delivery</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#2dd4a0"></span>WIP (ribu)</span><span class="leg"><span class="leg-dot" style="background:#f5a623"></span>OD (ribu)</span></div>
-          <div style="position:relative;height:200px"><canvas id="c13"></canvas></div>
-        </div>
-      </div>
-    </div>
 
-    <!-- PURCHASING -->
-    <div id="tab-purchasing" class="tab-content">
-      <div class="kpi-grid-3">
-        <div class="kpi-card blue"><div class="kpi-label">PO Berjalan Aktif</div><div class="kpi-value" id="kpi-po">—</div><div class="kpi-sub neu">PO terkini</div></div>
-        <div class="kpi-card amber"><div class="kpi-label">PO Terlambat</div><div class="kpi-value" id="kpi-polat">—</div><div class="kpi-sub warn">Perlu follow-up</div></div>
-        <div class="kpi-card green"><div class="kpi-label">Total Qty PO</div><div class="kpi-value" id="kpi-poqty">—</div><div class="kpi-sub neu">Pcs terakhir</div></div>
-      </div>
-      <div class="chart-grid">
-        <div class="chart-card">
-          <div class="chart-head"><div class="chart-title">Trend Jumlah PO Berjalan</div><div class="chart-desc">PO aktif harian</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#a78bfa"></span>PO Berjalan</span></div>
-          <div style="position:relative;height:200px"><canvas id="c14"></canvas></div>
+        <div class="cg2">
+          <div class="card span2">
+            <div class="card-head"><div class="card-title">Output Produksi vs Target (1.000 pcs)</div><div class="card-sub">Pcs/hari After QC</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#3d87f5"></span>Actual</span><span class="leg"><span class="ld" style="background:#f0564a;opacity:.5"></span>Target 1.000</span></div>
+            <div style="position:relative;height:200px"><canvas id="pr-c1"></canvas></div>
+          </div>
         </div>
-        <div class="chart-card">
-          <div class="chart-head"><div class="chart-title">Qty PO Berjalan (Pcs)</div><div class="chart-desc">Volume pembelian per hari</div></div>
-          <div class="legend"><span class="leg"><span class="leg-dot" style="background:#4b8cf5"></span>Qty PO (Pcs)</span></div>
-          <div style="position:relative;height:200px"><canvas id="c15"></canvas></div>
+        <div class="cg2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Reject Material &amp; Proses</div><div class="card-sub">Pcs/hari</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#f0564a"></span>Material</span><span class="leg"><span class="ld" style="background:#f5a623"></span>Proses</span></div>
+            <div style="position:relative;height:190px"><canvas id="pr-c2"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Produktivitas Harian</div><div class="card-sub">Pcs/Hari/Orang — Target 71,4</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#22d9a0"></span>Aktual</span><span class="leg"><span class="ld" style="background:#f0564a;opacity:.4"></span>Target</span></div>
+            <div style="position:relative;height:190px"><canvas id="pr-c3"></canvas></div>
+          </div>
+        </div>
+        <div class="div-label">Detail Harian Production</div>
+        <div class="card">
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Tanggal</th><th>Dikirim DC</th><th>Output QC</th><th>Manpower</th><th>Produktivitas</th><th>Rej Material</th><th>Rej Proses</th><th>Reject Rate</th><th>Status</th></tr></thead>
+            <tbody id="pr-tbl"></tbody>
+          </table></div>
         </div>
       </div>
-      <div class="section-title">Ringkasan Status PO</div>
-      <div class="chart-card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Tanggal</th><th>PO Aktif</th><th>PO Roll</th><th>Qty (Pcs)</th><th>Status</th></tr></thead>
-            <tbody id="po-table-body"></tbody>
-          </table>
+
+      <!-- ========== DC ========== -->
+      <div class="page" id="page-dc">
+        <div class="kpi-row kpi-4">
+          <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-lbl">Total Outbound</div><div class="kpi-val" id="dc-out">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-lbl">Total Inbound</div><div class="kpi-val" id="dc-in">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div><div class="kpi-lbl">Total Movement</div><div class="kpi-val" id="dc-mov">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--amber)"></div><div class="kpi-lbl">Manpower DC</div><div class="kpi-val" id="dc-mp">—</div><div class="kpi-sub n">Orang</div></div>
+        </div>
+        <div class="kpi-row kpi-4">
+          <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-lbl">Akurasi Cycle Count</div><div class="kpi-val" id="dc-acc">—</div><div class="kpi-sub g">Target 95%</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-lbl">SKU Hit</div><div class="kpi-val" id="dc-hit">—</div><div class="kpi-sub n">SKU</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div><div class="kpi-lbl">SKU Miss</div><div class="kpi-val" id="dc-miss">—</div><div class="kpi-sub n">SKU</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--cyan)"></div><div class="kpi-lbl">Produktivitas DC</div><div class="kpi-val" id="dc-prod">—</div><div class="kpi-sub n">Pcs/Hari/Org</div></div>
+        </div>
+
+        <div class="cg2">
+          <div class="card span2">
+            <div class="card-head"><div class="card-title">Inbound vs Outbound vs Total Movement</div><div class="card-sub">Pcs/hari</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#9d7ff5;opacity:.6"></span>Total Movement</span><span class="leg"><span class="ld" style="background:#22d9a0"></span>Outbound</span><span class="leg"><span class="ld" style="background:#3d87f5"></span>Inbound</span></div>
+            <div style="position:relative;height:200px"><canvas id="dc-c1"></canvas></div>
+          </div>
+        </div>
+        <div class="cg2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Akurasi Cycle Count (%)</div><div class="card-sub">Target 95%</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#22d9a0"></span>Akurasi</span><span class="leg"><span class="ld" style="background:#f0564a;opacity:.4"></span>Target 95%</span></div>
+            <div style="position:relative;height:190px"><canvas id="dc-c2"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">SKU Hit vs Miss</div><div class="card-sub">Per hari</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#22d9a0"></span>Hit</span><span class="leg"><span class="ld" style="background:#f0564a"></span>Miss</span></div>
+            <div style="position:relative;height:190px"><canvas id="dc-c3"></canvas></div>
+          </div>
+        </div>
+        <div class="div-label">Detail Harian DC</div>
+        <div class="card">
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Tanggal</th><th>Outbound</th><th>Inbound</th><th>Total Mov.</th><th>MP DC</th><th>Produktivitas</th><th>SKU CC</th><th>Hit</th><th>Miss</th><th>Akurasi CC</th></tr></thead>
+            <tbody id="dc-tbl"></tbody>
+          </table></div>
         </div>
       </div>
-    </div>
-  </div>
-</main>
+
+      <!-- ========== PPIC ========== -->
+      <div class="page" id="page-ppic">
+        <div class="kpi-row kpi-4">
+          <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div><div class="kpi-lbl">Overstock OH+OD</div><div class="kpi-val" id="pp-over">—</div><div class="kpi-sub" id="pp-over-s">SKU</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-lbl">Understock OH+OD</div><div class="kpi-val" id="pp-under">—</div><div class="kpi-sub g" id="pp-under-s">SKU</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--amber)"></div><div class="kpi-lbl">Critical Stock</div><div class="kpi-val" id="pp-crit">—</div><div class="kpi-sub w">SKU</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div><div class="kpi-lbl">DSI Stok</div><div class="kpi-val" id="pp-dsi">—</div><div class="kpi-sub" id="pp-dsi-s">Hari</div></div>
+        </div>
+        <div class="kpi-row kpi-4">
+          <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div><div class="kpi-lbl">Overstock OH+OD+WIP</div><div class="kpi-val" id="pp-over2">—</div><div class="kpi-sub n">SKU</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-lbl">Understock OH+OD+WIP</div><div class="kpi-val" id="pp-under2">—</div><div class="kpi-sub n">SKU</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-lbl">WIP</div><div class="kpi-val" id="pp-wip">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--cyan)"></div><div class="kpi-lbl">On Delivery (OD)</div><div class="kpi-val" id="pp-od">—</div><div class="kpi-sub n">Pcs</div></div>
+        </div>
+
+        <div class="cg2">
+          <div class="card span2">
+            <div class="card-head"><div class="card-title">Trend SKU Status (OH + OD Store)</div><div class="card-sub">Overstock, Understock, Critical per hari</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#f0564a"></span>Overstock</span><span class="leg"><span class="ld" style="background:#f5a623"></span>Critical</span><span class="leg"><span class="ld" style="background:#3d87f5"></span>Understock</span></div>
+            <div style="position:relative;height:200px"><canvas id="pp-c1"></canvas></div>
+          </div>
+        </div>
+        <div class="cg2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">DSI Stok</div><div class="card-sub">Days Sales Inventory</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#9d7ff5"></span>DSI (Hari)</span></div>
+            <div style="position:relative;height:190px"><canvas id="pp-c2"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">WIP &amp; OD Trend</div><div class="card-sub">Ribu Pcs</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#22d9a0"></span>WIP</span><span class="leg"><span class="ld" style="background:#f5a623"></span>OD</span></div>
+            <div style="position:relative;height:190px"><canvas id="pp-c3"></canvas></div>
+          </div>
+        </div>
+        <div class="div-label">Detail Harian PPIC</div>
+        <div class="card">
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Tanggal</th><th>Overstock</th><th>Understock</th><th>Critical</th><th>DSI</th><th>WIP</th><th>OD</th><th>Over+WIP</th><th>Under+WIP</th></tr></thead>
+            <tbody id="pp-tbl"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- ========== PURCHASING ========== -->
+      <div class="page" id="page-purchasing">
+        <div class="kpi-row kpi-3">
+          <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-lbl">PO Berjalan</div><div class="kpi-val" id="pu-po">—</div><div class="kpi-sub n">PO aktif terkini</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div><div class="kpi-lbl">PO Terlambat</div><div class="kpi-val" id="pu-lat">—</div><div class="kpi-sub" id="pu-lat-s">PO</div></div>
+          <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-lbl">Qty PO (Pcs)</div><div class="kpi-val" id="pu-qty">—</div><div class="kpi-sub n">Pcs</div></div>
+        </div>
+
+        <div class="cg2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Trend PO Berjalan</div><div class="card-sub">Jumlah PO aktif per hari</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#9d7ff5"></span>PO Berjalan</span></div>
+            <div style="position:relative;height:190px"><canvas id="pu-c1"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Qty PO Berjalan (Pcs)</div><div class="card-sub">Volume pembelian per hari</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#3d87f5"></span>Qty PO</span></div>
+            <div style="position:relative;height:190px"><canvas id="pu-c2"></canvas></div>
+          </div>
+        </div>
+        <div class="div-label">Detail PO Harian</div>
+        <div class="card">
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Tanggal</th><th>PO Aktif</th><th>PO Terlambat</th><th>PO Roll</th><th>Qty (Pcs)</th><th>Status</th></tr></thead>
+            <tbody id="pu-tbl"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+    </div><!-- /scroll -->
+  </div><!-- /main -->
+</div><!-- /shell -->
 
 <script>
 // ============================================================
-// KONFIGURASI — Ganti URL di sini jika link CSV berubah
+// KONFIGURASI CSV
 // ============================================================
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQfrW1wozw68VihcYRbFZFAbBmo0CDuLWRcbX_TsyBMcSnKkKWlIyKnqAbukZM5FG8g12ga2dApCpNQ/pub?gid=0&single=true&output=csv';
 // ============================================================
 
+let G = {}; // global data store
+let activePage = 'overview';
+let activeDate = 'all'; // 'all' or specific date string
+
 const CHARTS = {};
-const gc = 'rgba(255,255,255,0.06)', tc = '#555d7a';
+const gc = 'rgba(255,255,255,0.05)', tc = '#424d66';
 
-const baseOpts = (yLbl='') => ({
-  responsive:true, maintainAspectRatio:false,
-  plugins:{
-    legend:{display:false},
-    tooltip:{backgroundColor:'#1c2030',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#e8eaf0',bodyColor:'#8a8fa8',padding:10,cornerRadius:8}
-  },
-  scales:{
-    x:{ticks:{color:tc,font:{size:10,family:"'DM Mono'"},maxRotation:45,autoSkip:true,maxTicksLimit:14},grid:{color:gc,lineWidth:.5}},
-    y:{ticks:{color:tc,font:{size:10,family:"'DM Mono'"}},grid:{color:gc,lineWidth:.5},
-       title:yLbl?{display:true,text:yLbl,color:tc,font:{size:10}}:{display:false}}
-  }
-});
-
-function mkChart(id,type,labels,datasets,yLbl=''){
-  if(CHARTS[id]) CHARTS[id].destroy();
-  const el=document.getElementById(id);
-  if(!el) return;
-  CHARTS[id]=new Chart(el,{type,data:{labels,datasets},options:baseOpts(yLbl)});
+// ---- CHART FACTORY ----
+function mkC(id, type, labels, datasets, yLbl='') {
+  if (CHARTS[id]) CHARTS[id].destroy();
+  const el = document.getElementById(id);
+  if (!el) return;
+  CHARTS[id] = new Chart(el, {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor:'#1c2130', borderColor:'rgba(255,255,255,0.08)', borderWidth:1, titleColor:'#dde2f0', bodyColor:'#7a84a0', padding:9, cornerRadius:8 }
+      },
+      scales: {
+        x: { ticks:{color:tc,font:{size:9,family:"'JetBrains Mono'"},maxRotation:45,autoSkip:true,maxTicksLimit:14}, grid:{color:gc,lineWidth:.5} },
+        y: { ticks:{color:tc,font:{size:9,family:"'JetBrains Mono'"}}, grid:{color:gc,lineWidth:.5},
+             title: yLbl ? {display:true,text:yLbl,color:tc,font:{size:9}} : {display:false} }
+      }
+    }
+  });
 }
 
-function parseNum(v){
-  if(v===null||v===undefined) return null;
-  const s=String(v).trim().replace('%','').replace(/,/g,'').replace(/\./g,'');
-  // handle angka dengan titik sebagai pemisah ribuan Indonesia
-  const s2=String(v).trim().replace('%','').replace(/\./g,'').replace(',','.');
-  if(s===''||s==='-'||s.toLowerCase().includes('div')||s==='#value!'||s==='#n/a'||s==='#ref!') return null;
-  // coba parse langsung dulu
-  let n=parseFloat(String(v).trim().replace('%','').replace(/[^\d.\-]/g,''));
-  if(!isNaN(n)) return n;
-  n=parseFloat(s2);
-  return isNaN(n)?null:n;
+// ---- UTILS ----
+function pn(v) {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  if (!s || s === '-' || /div/i.test(s) || /^#/.test(s)) return null;
+  const n = parseFloat(s.replace(/[^\d.\-]/g, ''));
+  return isNaN(n) ? null : n;
 }
 
-function fmt(n,dec=0){
-  if(n===null||n===undefined||isNaN(n)) return '—';
-  return n.toLocaleString('id-ID',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+function fmt(n, d=0) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return n.toLocaleString('id-ID', { minimumFractionDigits:d, maximumFractionDigits:d });
 }
 
-function lastNonNull(arr){
-  for(let i=arr.length-1;i>=0;i--) if(arr[i]!==null&&!isNaN(arr[i])) return arr[i];
-  return null;
-}
+function last(arr) { for (let i=arr.length-1;i>=0;i--) if (arr[i]!==null&&!isNaN(arr[i])) return arr[i]; return null; }
+function avg(arr)  { const v=arr.filter(x=>x!==null&&!isNaN(x)); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; }
+function sum(arr)  { return arr.filter(x=>x!==null&&!isNaN(x)).reduce((a,b)=>a+b,0); }
+function set(id,v) { const el=document.getElementById(id); if(el) el.textContent=v; }
+function setClass(id,cls) { const el=document.getElementById(id); if(el) el.className=el.className.replace(/\b[grwn]\b/,'').trim()+' '+cls; }
 
-function avgNonNull(arr){
-  const v=arr.filter(x=>x!==null&&!isNaN(x));
-  return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;
-}
-
-function sumNonNull(arr){
-  return arr.filter(x=>x!==null&&!isNaN(x)).reduce((a,b)=>a+b,0);
-}
-
-function setText(id,val){
-  const el=document.getElementById(id);
-  if(el) el.textContent=val;
-}
-
-function loadData(){
-  document.getElementById('loading').style.display='flex';
-  document.getElementById('error-banner').style.display='none';
-
-  Papa.parse(CSV_URL+'&t='+Date.now(),{
-    download:true,
-    header:false,
-    skipEmptyLines:false,
-    complete:function(res){
-      try{
-        processData(res.data);
-        document.getElementById('loading').style.display='none';
-        const now=new Date();
-        setText('last-updated',now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB');
-      }catch(e){
-        showError('Gagal memproses data: '+e.message);
+// ---- LOAD DATA ----
+function loadData() {
+  document.getElementById('loader').style.display = 'flex';
+  set('load-msg', 'Mengambil data dari Google Sheets...');
+  Papa.parse(CSV_URL + '&t=' + Date.now(), {
+    download: true, header: false, skipEmptyLines: false,
+    complete: res => {
+      try {
+        parseCSV(res.data);
+        document.getElementById('loader').style.display = 'none';
+        const now = new Date();
+        set('last-upd', now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB');
+      } catch(e) {
+        document.getElementById('loader').style.display = 'none';
+        alert('Error: ' + e.message);
         console.error(e);
       }
     },
-    error:function(err){
-      showError('Gagal mengambil data. Periksa koneksi internet atau URL CSV.');
-      console.error(err);
-    }
+    error: e => { document.getElementById('loader').style.display='none'; alert('Gagal mengambil data: '+e); }
   });
 }
 
-function showError(msg){
-  document.getElementById('loading').style.display='none';
-  const b=document.getElementById('error-banner');
-  b.style.display='flex';
-  document.getElementById('error-msg').textContent=msg;
-}
-
-function processData(raw){
-  // ---- CARI BARIS HEADER (berisi "Divisi" dan "Indikator") ----
-  let headerIdx = -1;
-  for(let i=0;i<raw.length;i++){
-    const row = raw[i];
-    const joined = row.join('|').toLowerCase();
-    if(joined.includes('divisi') && joined.includes('indikator')){
-      headerIdx = i;
-      break;
-    }
+// ---- PARSE CSV ----
+function parseCSV(raw) {
+  // Cari baris header (berisi Divisi + Indikator)
+  let hIdx = -1;
+  for (let i=0;i<raw.length;i++) {
+    const j = raw[i].join('|').toLowerCase();
+    if (j.includes('divisi') && j.includes('indikator')) { hIdx=i; break; }
   }
-  if(headerIdx === -1) throw new Error('Header baris tidak ditemukan di CSV');
+  if (hIdx < 0) throw new Error('Baris header tidak ditemukan');
 
-  const headerRow = raw[headerIdx];
-
-  // Kolom tanggal mulai dari index 3 (setelah Divisi, Indikator, Target)
-  const dates = [];
-  for(let i=3;i<headerRow.length;i++){
-    const d = String(headerRow[i]||'').trim();
-    if(d) dates.push(d);
+  const hRow = raw[hIdx];
+  const allDates = [];
+  for (let i=3;i<hRow.length;i++) {
+    const d = String(hRow[i]||'').trim();
+    if (d) allDates.push(d);
   }
 
-  setText('data-range', dates[0]+' – '+dates[dates.length-1]);
-
-  // ---- BANGUN ROWS dari baris setelah header ----
+  // Build rows
   const rows = [];
-  let lastDivisi = '';
-  for(let i=headerIdx+1;i<raw.length;i++){
+  let lastDiv = '';
+  for (let i=hIdx+1;i<raw.length;i++) {
     const r = raw[i];
-    if(!r||r.length<2) continue;
-    const divisi = String(r[0]||'').trim();
-    const indikator = String(r[1]||'').trim();
-    if(!indikator) continue;
-    if(divisi) lastDivisi = divisi;
-    const obj = { Divisi:lastDivisi, Indikator:indikator, Target:parseNum(r[2]) };
-    dates.forEach((d,idx)=>{ obj[d]=parseNum(r[3+idx]); });
+    if (!r||r.length<2) continue;
+    const div = String(r[0]||'').trim();
+    const ind = String(r[1]||'').trim();
+    if (!ind) continue;
+    if (div) lastDiv = div;
+    const obj = { Div:lastDiv, Ind:ind, Tgt:pn(r[2]) };
+    allDates.forEach((d,idx) => { obj[d] = pn(r[3+idx]); });
     rows.push(obj);
   }
 
-  // ---- HELPER CARI ROW ----
-  function getRow(kw){
-    const k=kw.toLowerCase();
-    return rows.find(r=>r.Indikator.toLowerCase().includes(k))||null;
-  }
-  function getRowDiv(kw,div){
-    const k=kw.toLowerCase(), d=div.toLowerCase();
-    return rows.find(r=>r.Indikator.toLowerCase().includes(k)&&r.Divisi.toLowerCase().includes(d))||null;
-  }
-  function vals(row){ return row?dates.map(d=>row[d]):dates.map(()=>null); }
+  // Helper
+  const findRow = (kw, divKw='') => rows.find(r => {
+    const m = r.Ind.toLowerCase().includes(kw.toLowerCase());
+    return divKw ? m && r.Div.toLowerCase().includes(divKw.toLowerCase()) : m;
+  }) || null;
 
-  // ---- EXTRACT SERIES ----
-  const shipped    = vals(getRow('Barang Dikirim ke DC'));
-  const rejMat     = vals(getRow('Reject Material'));
-  const rejProc    = vals(getRow('Reject Process'));
-  const rejRate    = vals(getRow('Reject Rate'));
-  const outQC      = vals(getRow('Output Produksi'));
-  const manpower   = vals(getRow('Jumlah Manpower'));
-  const prodPerf   = vals(getRowDiv('Productivity','Production')||getRow('Productivity (Pcs/Day'));
-  const reworkQty  = vals(getRow('Qty Finish Good'));
-  const defectSisa = vals(getRow('Sisa Product Defect (Rework)'));
+  const vals = (row) => row ? allDates.map(d => row[d]) : allDates.map(()=>null);
 
-  const outbound   = vals(getRow('Jumlah Outbond'));
-  const inbound    = vals(getRow('Jumlah Inbond'));
-  const totalMov   = vals(getRow('Total movement'));
-  const mpDC       = vals(getRow('Jumlah MP DC'));
-  const skuHit     = vals(getRow('SKU HIT'));
-  const skuMiss    = vals(getRow('SKU Miss'));
-  const accCC      = vals(getRow('Akurasi Cycle Count'));
+  // Extract all series
+  G = {
+    dates: allDates,
+    // Production
+    shipped:   vals(findRow('Barang Dikirim ke DC')),
+    rejMat:    vals(findRow('Reject Material')),
+    rejProc:   vals(findRow('Reject Process')),
+    rejRate:   vals(findRow('Reject Rate')),
+    outQC:     vals(findRow('Output Produksi')),
+    manpower:  vals(findRow('Jumlah Manpower')),
+    prodPerf:  vals(findRow('Productivity (Pcs/Day') || findRow('Productivity','Production')),
+    reworkQty: vals(findRow('Qty Finish Good')),
+    defectSisa:vals(findRow('Sisa Product Defect (Rework)')),
+    // DC
+    outbound:  vals(findRow('Jumlah Outbond')),
+    inbound:   vals(findRow('Jumlah Inbond')),
+    totalMov:  vals(findRow('Total movement')),
+    mpDC:      vals(findRow('Jumlah MP DC')),
+    prodDC:    vals(findRow('Productivity','DC') || findRow('Productivity (Pcs/Day/Orang)')),
+    skuCC:     vals(findRow('Jumlah SKU Cycle Count')),
+    skuHit:    vals(findRow('SKU HIT')),
+    skuMiss:   vals(findRow('SKU Miss')),
+    accCC:     vals(findRow('Akurasi Cycle Count')),
+    // PPIC
+    overOH:    vals(rows.find(r=>r.Ind.toLowerCase().includes('overstock')&&r.Ind.toLowerCase().includes('oh + od store')) || findRow('OverStock')),
+    underOH:   vals(rows.find(r=>r.Ind.toLowerCase().includes('under stock')&&r.Ind.toLowerCase().includes('oh + od store')) || findRow('Under Stock')),
+    critOH:    vals(rows.find(r=>r.Ind.toLowerCase().includes('critical stock')&&r.Ind.toLowerCase().includes('oh + od store')) || findRow('Critical Stock')),
+    overWIP:   vals(rows.find(r=>r.Ind.toLowerCase().includes('overstock')&&r.Ind.toLowerCase().includes('oh+od+wip')) || null),
+    underWIP:  vals(rows.find(r=>r.Ind.toLowerCase().includes('under stock')&&r.Ind.toLowerCase().includes('oh+od+wip')) || null),
+    dsi:       vals(findRow('DSI Stok')),
+    wip:       vals(findRow('WIP')),
+    od:        vals(rows.find(r=>r.Ind.trim()==='OD') || findRow('OD')),
+    // Purchasing
+    poBerjalan:vals(rows.find(r=>r.Ind.toLowerCase().includes('po berjalan (po)')) || findRow('PO Berjalan (PO')),
+    poLambat:  vals(findRow('Terlambat')),
+    poRoll:    vals(findRow('Roll')),
+    poQty:     vals(rows.find(r=>r.Ind.toLowerCase().includes('po berjalan (pcs)')) || findRow('PO Berjalan (Pcs')),
+  };
 
-  const overOHOD   = vals(getRow('OverStock') && rows.find(r=>r.Indikator.toLowerCase().includes('overstock')&&r.Indikator.toLowerCase().includes('oh + od store'))||getRow('OverStock'));
-  const underOHOD  = vals(rows.find(r=>r.Indikator.toLowerCase().includes('under stock')&&r.Indikator.toLowerCase().includes('oh + od store'))||getRow('Under Stock'));
-  const critOHOD   = vals(rows.find(r=>r.Indikator.toLowerCase().includes('critical stock')&&r.Indikator.toLowerCase().includes('oh + od store'))||getRow('Critical Stock'));
-  const dsi        = vals(getRow('DSI Stok'));
-  const wip        = vals(getRow('WIP'));
-  const od         = vals(rows.find(r=>r.Indikator.trim()==='OD')||getRow('\nOD'));
+  // Normalize reject rate & acc CC to %
+  G.rrPct = G.rejRate.map(v => v===null ? null : (v<=1?v*100:v));
+  G.accPct = G.accCC.map(v => v===null ? null : (v<=1?v*100:v));
 
-  const poBerjalan = vals(rows.find(r=>r.Indikator.toLowerCase().includes('po berjalan (po)'))||getRow('PO Berjalan (PO'));
-  const poLambat   = vals(getRow('Terlambat'));
-  const poRoll     = vals(getRow('Roll'));
-  const poQty      = vals(rows.find(r=>r.Indikator.toLowerCase().includes('po berjalan (pcs)'))||getRow('PO Berjalan (Pcs'));
+  set('live-range', allDates[0] + ' – ' + allDates[allDates.length-1]);
 
-  // Normalize reject rate ke %
-  const rejectPct = rejRate.map(v=>{
-    if(v===null) return null;
-    return v<=1 ? v*100 : v;
+  // Build date tabs
+  buildDateTabs(allDates);
+
+  // Render
+  render();
+}
+
+// ---- DATE TABS ----
+function buildDateTabs(dates) {
+  const wrap = document.getElementById('date-tabs');
+  wrap.innerHTML = '';
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'date-tab all active';
+  allBtn.textContent = 'Semua';
+  allBtn.onclick = () => selectDate('all', allBtn);
+  wrap.appendChild(allBtn);
+
+  dates.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'date-tab';
+    btn.textContent = d;
+    btn.onclick = () => selectDate(d, btn);
+    wrap.appendChild(btn);
   });
-  const accPct = accCC.map(v=> v===null?null:(v<=1?v*100:v));
+}
 
-  // ---- KPI ----
-  const lastAcc = lastNonNull(accPct);
-  setText('kpi-shipped', fmt(sumNonNull(shipped)));
-  setText('kpi-reject',  fmt(avgNonNull(rejectPct),2)+'%');
-  setText('kpi-acc',     fmt(lastAcc,1)+'%');
-  setText('kpi-dsi',     fmt(lastNonNull(dsi)));
-  setText('kpi-mp',      fmt(lastNonNull(manpower)));
-  setText('kpi-prod',    fmt(avgNonNull(prodPerf),1));
-  setText('kpi-defect',  fmt(lastNonNull(defectSisa)));
-  setText('kpi-rework',  fmt(lastNonNull(reworkQty)));
-  setText('kpi-out',     fmt(sumNonNull(outbound)));
-  setText('kpi-in',      fmt(sumNonNull(inbound)));
-  setText('kpi-acc2',    fmt(lastAcc,1)+'%');
-  setText('kpi-mpdc',    fmt(lastNonNull(mpDC)));
-  const lo=lastNonNull(overOHOD), lu=lastNonNull(underOHOD), lc=lastNonNull(critOHOD);
-  setText('kpi-over',    fmt(lo));
-  setText('kpi-under',   fmt(lu));
-  setText('kpi-crit',    fmt(lc));
-  setText('kpi-dsi2',    fmt(lastNonNull(dsi)));
-  setText('kpi-po',      fmt(lastNonNull(poBerjalan)));
-  const llat=lastNonNull(poLambat); setText('kpi-polat', llat?fmt(llat):'0');
-  setText('kpi-poqty',   fmt(lastNonNull(poQty)));
-  setText('leg-over',  'Overstock ('+(lo?fmt(lo):'—')+')');
-  setText('leg-crit',  'Critical ('+(lc?fmt(lc):'—')+')');
-  setText('leg-under', 'Understock ('+(lu?fmt(lu):'—')+')');
+function selectDate(d, btn) {
+  activeDate = d;
+  document.querySelectorAll('.date-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const badge = document.getElementById('mode-badge');
+  if (d === 'all') {
+    badge.textContent = 'Semua Tanggal';
+    badge.className = 'badge badge-b';
+  } else {
+    badge.textContent = d;
+    badge.className = 'badge badge-g';
+  }
+  render();
+}
 
-  // Alert
-  const ldsi=lastNonNull(dsi), lrej=avgNonNull(rejectPct);
-  const alerts=[];
-  if(ldsi&&ldsi>60) alerts.push('DSI stok mencapai '+fmt(ldsi)+' hari.');
-  if(lo&&lo>5000) alerts.push('Overstock SKU sangat tinggi: '+fmt(lo)+' SKU.');
-  if(lrej&&lrej>0.65) alerts.push('Reject rate rata-rata '+fmt(lrej,2)+'% melampaui target 0,65%.');
-  const ab=document.getElementById('alert-banner');
-  if(alerts.length){ ab.style.display='flex'; setText('alert-text',alerts.join(' ')); }
+// ---- FILTER DATA ----
+function filtered(arr) {
+  if (activeDate === 'all') return { labels: G.dates, data: arr };
+  const idx = G.dates.indexOf(activeDate);
+  if (idx < 0) return { labels: [], data: [] };
+  return { labels: [G.dates[idx]], data: [arr[idx]] };
+}
+
+function aggVal(arr, mode='last') {
+  const { data } = filtered(arr);
+  if (activeDate !== 'all') return data[0];
+  if (mode === 'sum') return sum(data);
+  if (mode === 'avg') return avg(data);
+  return last(data);
+}
+
+// ---- RENDER ALL ----
+function render() {
+  renderOverview();
+  renderProduction();
+  renderDC();
+  renderPPIC();
+  renderPurchasing();
+}
+
+// ========== OVERVIEW ==========
+function renderOverview() {
+  const ship = aggVal(G.shipped, 'sum');
+  const rr   = aggVal(G.rrPct, 'avg');
+  const acc  = aggVal(G.accPct, 'last');
+  const dsi  = aggVal(G.dsi, 'last');
+  const ov   = aggVal(G.overOH, 'last');
+  const lo   = aggVal(G.overOH, 'last');
+  const lu   = aggVal(G.underOH, 'last');
+  const lc   = aggVal(G.critOH, 'last');
+
+  set('ov-shipped', fmt(ship));
+  set('ov-rr', fmt(rr,2)+'%');
+  set('ov-acc', fmt(acc,1)+'%');
+  set('ov-dsi', fmt(dsi));
+  set('ov-over', fmt(ov));
+
+  // Color sub
+  const rrEl = document.getElementById('ov-rr-s');
+  if (rrEl) { rrEl.className = 'kpi-sub '+(rr&&rr>0.65?'r':'g'); rrEl.textContent = 'Target ≤0,65%'; }
+  const dsiEl = document.getElementById('ov-dsi-s');
+  if (dsiEl) { dsiEl.className = 'kpi-sub '+(dsi&&dsi>60?'r':dsi&&dsi>30?'w':'g'); dsiEl.textContent = 'Hari'; }
+  const ovEl = document.getElementById('ov-over-s');
+  if (ovEl) { ovEl.className = 'kpi-sub '+(ov&&ov>3000?'r':ov&&ov>1000?'w':'g'); ovEl.textContent = 'SKU'; }
+
+  // Alerts
+  const alerts = [];
+  if (dsi && dsi > 60) alerts.push('DSI stok '+fmt(dsi)+' hari.');
+  if (ov && ov > 5000) alerts.push('Overstock '+fmt(ov)+' SKU.');
+  if (rr && rr > 0.65) alerts.push('Reject rate '+fmt(rr,2)+'% > target.');
+  const ab = document.getElementById('alert-ov');
+  if (alerts.length) { ab.style.display='flex'; set('alert-ov-txt', alerts.join(' ⚠ ')); }
   else ab.style.display='none';
 
-  // ---- CHARTS ----
-  mkChart('c1','bar',dates,[
-    {label:'Target',data:dates.map(()=>1200),type:'line',borderColor:'rgba(245,96,75,.4)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[5,4]},
-    {label:'Actual',data:shipped,backgroundColor:'rgba(75,140,245,.5)',borderColor:'#4b8cf5',borderWidth:0,borderRadius:3}
+  set('leg-ov-over', 'Overstock ('+(lo?fmt(lo):'—')+')');
+  set('leg-ov-crit', 'Critical ('+(lc?fmt(lc):'—')+')');
+  set('leg-ov-under','Understock ('+(lu?fmt(lu):'—')+')');
+
+  const { labels: L, data: _ } = filtered(G.outQC);
+
+  mkC('ov-c1','bar',L,[
+    {label:'Target',data:L.map(()=>1000),type:'line',borderColor:'rgba(240,86,74,.4)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[5,4]},
+    {label:'Actual',data:filtered(G.outQC).data,backgroundColor:'rgba(61,135,245,.5)',borderColor:'#3d87f5',borderWidth:0,borderRadius:3}
   ],'Pcs');
 
-  mkChart('c2','line',dates,[
-    {label:'Target',data:dates.map(()=>0.65),borderColor:'rgba(245,166,35,.4)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[4,4]},
-    {label:'Reject Rate',data:rejectPct,borderColor:'#f5604b',backgroundColor:'rgba(245,96,75,.1)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
+  mkC('ov-c2','line',L,[
+    {label:'Target',data:L.map(()=>0.65),borderColor:'rgba(245,166,35,.4)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[4,4]},
+    {label:'RR',data:filtered(G.rrPct).data,borderColor:'#f0564a',backgroundColor:'rgba(240,86,74,.1)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
   ],'%');
 
-  mkChart('c3','doughnut',['Overstock','Critical','Understock'],[
-    {data:[lo||0,lc||0,lu||0],backgroundColor:['#f5604b','#f5a623','#4b8cf5'],borderWidth:0,hoverOffset:4,borderRadius:4}
+  mkC('ov-c3','doughnut',['Overstock','Critical','Understock'],[
+    {data:[lo||0,lc||0,lu||0],backgroundColor:['#f0564a','#f5a623','#3d87f5'],borderWidth:0,hoverOffset:4,borderRadius:4}
   ]);
 
-  mkChart('c4','line',dates,[
-    {label:'Outbound',data:outbound,borderColor:'#2dd4a0',backgroundColor:'rgba(45,212,160,.08)',borderWidth:2,pointRadius:1,fill:true,tension:.3},
-    {label:'Inbound', data:inbound, borderColor:'#4b8cf5',backgroundColor:'rgba(75,140,245,.08)', borderWidth:2,pointRadius:1,fill:true,tension:.3}
+  mkC('ov-c4','line',L,[
+    {label:'Outbound',data:filtered(G.outbound).data,borderColor:'#22d9a0',backgroundColor:'rgba(34,217,160,.07)',borderWidth:2,pointRadius:1,fill:true,tension:.3},
+    {label:'Inbound', data:filtered(G.inbound).data, borderColor:'#3d87f5',backgroundColor:'rgba(61,135,245,.07)', borderWidth:2,pointRadius:1,fill:true,tension:.3}
   ],'Pcs');
 
-  mkChart('c5','bar',dates,[
-    {label:'Target',data:dates.map(()=>1000),type:'line',borderColor:'rgba(245,96,75,.4)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[5,4]},
-    {label:'Actual',data:outQC,backgroundColor:'rgba(75,140,245,.5)',borderColor:'#4b8cf5',borderWidth:0,borderRadius:3}
-  ],'Pcs');
-
-  mkChart('c6','bar',dates,[
-    {label:'Material',data:rejMat, backgroundColor:'rgba(245,96,75,.7)', borderColor:'#f5604b',borderWidth:0,borderRadius:3},
-    {label:'Proses',  data:rejProc,backgroundColor:'rgba(245,166,35,.7)',borderColor:'#f5a623',borderWidth:0,borderRadius:3}
-  ],'Pcs');
-
-  mkChart('c7','line',dates,[
-    {label:'Target',data:dates.map(()=>71.4),borderColor:'rgba(245,96,75,.4)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[4,4]},
-    {label:'Produktivitas',data:prodPerf,borderColor:'#2dd4a0',backgroundColor:'rgba(45,212,160,.1)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
-  ],'Pcs/Org');
-
-  mkChart('c8','bar',dates,[
-    {label:'Total',   data:totalMov,backgroundColor:'rgba(167,139,250,.2)',borderColor:'rgba(167,139,250,.5)',borderWidth:1,borderRadius:3},
-    {label:'Outbound',data:outbound, borderColor:'#2dd4a0',borderWidth:1.5,type:'line',pointRadius:0,fill:false,tension:.3},
-    {label:'Inbound', data:inbound,  borderColor:'#4b8cf5',borderWidth:1.5,type:'line',pointRadius:0,fill:false,tension:.3}
-  ],'Pcs');
-
-  mkChart('c9','line',dates,[
-    {label:'Target',  data:dates.map(()=>95),borderColor:'rgba(245,96,75,.4)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[4,4]},
-    {label:'Akurasi', data:accPct,borderColor:'#2dd4a0',backgroundColor:'rgba(45,212,160,.1)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
-  ],'%');
-
-  mkChart('c10','bar',dates,[
-    {label:'Hit', data:skuHit, backgroundColor:'rgba(45,212,160,.6)',borderColor:'#2dd4a0',borderWidth:0,borderRadius:3},
-    {label:'Miss',data:skuMiss,backgroundColor:'rgba(245,96,75,.6)', borderColor:'#f5604b',borderWidth:0,borderRadius:3}
-  ],'SKU');
-
-  mkChart('c11','line',dates,[
-    {label:'Overstock', data:overOHOD, borderColor:'#f5604b',backgroundColor:'rgba(245,96,75,.1)',borderWidth:2,pointRadius:1,fill:true,tension:.3},
-    {label:'Critical',  data:critOHOD, borderColor:'#f5a623',borderWidth:2,pointRadius:1,fill:false,tension:.3},
-    {label:'Understock',data:underOHOD,borderColor:'#4b8cf5',borderWidth:2,pointRadius:1,fill:false,tension:.3}
-  ],'SKU');
-
-  mkChart('c12','line',dates,[
-    {label:'DSI',data:dsi,borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,.1)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
+  mkC('ov-c5','line',L,[
+    {label:'DSI',data:filtered(G.dsi).data,borderColor:'#9d7ff5',backgroundColor:'rgba(157,127,245,.1)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
   ],'Hari');
 
-  mkChart('c13','line',dates,[
-    {label:'WIP',data:wip.map(v=>v?Math.round(v/1000):null),borderColor:'#2dd4a0',borderWidth:2,pointRadius:1,fill:false,tension:.3},
-    {label:'OD', data:od.map(v=>v?Math.round(v/1000):null), borderColor:'#f5a623',borderWidth:2,pointRadius:1,fill:false,tension:.3}
+  // Productivity comparison bars
+  const cmpList = document.getElementById('prod-cmp-list');
+  const { labels: cL, data: cD } = filtered(G.prodPerf);
+  const maxProd = Math.max(...cD.filter(v=>v!==null&&!isNaN(v)), 71.4);
+  if (!cL.length) { cmpList.innerHTML='<div class="empty">Tidak ada data</div>'; return; }
+  cmpList.innerHTML = cL.map((d,i) => {
+    const v = cD[i];
+    if (v===null) return '';
+    const pct = Math.min(100,(v/maxProd)*100).toFixed(1);
+    const col = v>=71.4?'#22d9a0':v>=50?'#f5a623':'#f0564a';
+    return `<div class="cmp-row">
+      <div class="cmp-lbl">${d}</div>
+      <div class="cmp-bar-wrap"><div class="cmp-bar" style="width:${pct}%;background:${col}"></div></div>
+      <div class="cmp-val">${fmt(v,1)} <span style="font-size:9px;color:var(--text3)">pcs/org</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ========== PRODUCTION ==========
+function renderProduction() {
+  const { labels:L } = filtered(G.outQC);
+  set('pr-out',  fmt(aggVal(G.outQC,'sum')));
+  set('pr-mp',   fmt(aggVal(G.manpower,'last')));
+  set('pr-prod', fmt(aggVal(G.prodPerf,'avg'),1));
+  const rr = aggVal(G.rrPct,'avg');
+  set('pr-rr',   fmt(rr,2)+'%');
+  const rrS = document.getElementById('pr-rr-s');
+  if(rrS){ rrS.className='kpi-sub '+(rr&&rr>0.65?'r':'g'); rrS.textContent='%'; }
+  set('pr-ship', fmt(aggVal(G.shipped,'sum')));
+  set('pr-rm',   fmt(aggVal(G.rejMat,'sum')));
+  set('pr-rp',   fmt(aggVal(G.rejProc,'sum')));
+  set('pr-def',  fmt(aggVal(G.defectSisa,'last')));
+
+  mkC('pr-c1','bar',L,[
+    {label:'Target',data:L.map(()=>1000),type:'line',borderColor:'rgba(240,86,74,.4)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[5,4]},
+    {label:'Output',data:filtered(G.outQC).data,backgroundColor:'rgba(61,135,245,.5)',borderColor:'#3d87f5',borderWidth:0,borderRadius:3}
+  ],'Pcs');
+  mkC('pr-c2','bar',L,[
+    {label:'Material',data:filtered(G.rejMat).data,backgroundColor:'rgba(240,86,74,.65)',borderColor:'#f0564a',borderWidth:0,borderRadius:3},
+    {label:'Proses',  data:filtered(G.rejProc).data,backgroundColor:'rgba(245,166,35,.65)',borderColor:'#f5a623',borderWidth:0,borderRadius:3}
+  ],'Pcs');
+  mkC('pr-c3','line',L,[
+    {label:'Target',data:L.map(()=>71.4),borderColor:'rgba(240,86,74,.4)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[4,4]},
+    {label:'Prod',  data:filtered(G.prodPerf).data,borderColor:'#22d9a0',backgroundColor:'rgba(34,217,160,.1)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
+  ],'Pcs/Org');
+
+  // Table
+  const { labels:tL } = filtered(G.outQC);
+  const tbody = document.getElementById('pr-tbl');
+  tbody.innerHTML = tL.map(d => {
+    const i = G.dates.indexOf(d);
+    const rr = G.rrPct[i]; const rrOk = rr!==null&&rr<=0.65;
+    const prod = G.prodPerf[i]; const prodOk = prod!==null&&prod>=71.4;
+    const status = (rrOk&&prodOk)?'<span class="badge badge-g">OK</span>':
+                   (!rrOk&&rr!==null)?'<span class="badge badge-r">Reject ↑</span>':
+                   '<span class="badge badge-w">Monitor</span>';
+    return `<tr>
+      <td>${d}</td>
+      <td>${fmt(G.shipped[i])}</td>
+      <td>${fmt(G.outQC[i])}</td>
+      <td>${fmt(G.manpower[i])}</td>
+      <td>${fmt(prod,1)}</td>
+      <td>${fmt(G.rejMat[i])}</td>
+      <td>${fmt(G.rejProc[i])}</td>
+      <td>${fmt(rr,2)}%</td>
+      <td>${status}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" class="empty">Tidak ada data</td></tr>';
+}
+
+// ========== DC ==========
+function renderDC() {
+  const { labels:L } = filtered(G.outbound);
+  set('dc-out',  fmt(aggVal(G.outbound,'sum')));
+  set('dc-in',   fmt(aggVal(G.inbound,'sum')));
+  set('dc-mov',  fmt(aggVal(G.totalMov,'sum')));
+  set('dc-mp',   fmt(aggVal(G.mpDC,'last')));
+  set('dc-acc',  fmt(aggVal(G.accPct,'avg'),1)+'%');
+  set('dc-hit',  fmt(aggVal(G.skuHit,'sum')));
+  set('dc-miss', fmt(aggVal(G.skuMiss,'sum')));
+  set('dc-prod', fmt(aggVal(G.prodDC,'avg'),0));
+
+  mkC('dc-c1','bar',L,[
+    {label:'Total',   data:filtered(G.totalMov).data,backgroundColor:'rgba(157,127,245,.18)',borderColor:'rgba(157,127,245,.45)',borderWidth:1,borderRadius:3},
+    {label:'Outbound',data:filtered(G.outbound).data,borderColor:'#22d9a0',borderWidth:1.5,type:'line',pointRadius:0,fill:false,tension:.3},
+    {label:'Inbound', data:filtered(G.inbound).data, borderColor:'#3d87f5',borderWidth:1.5,type:'line',pointRadius:0,fill:false,tension:.3}
+  ],'Pcs');
+  mkC('dc-c2','line',L,[
+    {label:'Target',  data:L.map(()=>95),borderColor:'rgba(240,86,74,.4)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[4,4]},
+    {label:'Akurasi', data:filtered(G.accPct).data,borderColor:'#22d9a0',backgroundColor:'rgba(34,217,160,.1)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
+  ],'%');
+  mkC('dc-c3','bar',L,[
+    {label:'Hit', data:filtered(G.skuHit).data, backgroundColor:'rgba(34,217,160,.6)',borderColor:'#22d9a0',borderWidth:0,borderRadius:3},
+    {label:'Miss',data:filtered(G.skuMiss).data,backgroundColor:'rgba(240,86,74,.6)', borderColor:'#f0564a',borderWidth:0,borderRadius:3}
+  ],'SKU');
+
+  const tbody = document.getElementById('dc-tbl');
+  tbody.innerHTML = L.map(d => {
+    const i = G.dates.indexOf(d);
+    const acc = G.accPct[i];
+    return `<tr>
+      <td>${d}</td><td>${fmt(G.outbound[i])}</td><td>${fmt(G.inbound[i])}</td>
+      <td>${fmt(G.totalMov[i])}</td><td>${fmt(G.mpDC[i])}</td>
+      <td>${fmt(G.prodDC[i],0)}</td><td>${fmt(G.skuCC[i])}</td>
+      <td>${fmt(G.skuHit[i])}</td><td>${fmt(G.skuMiss[i])}</td>
+      <td>${fmt(acc,1)}%</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="10" class="empty">Tidak ada data</td></tr>';
+}
+
+// ========== PPIC ==========
+function renderPPIC() {
+  const { labels:L } = filtered(G.overOH);
+  const lo = aggVal(G.overOH,'last'), lu = aggVal(G.underOH,'last'), lc = aggVal(G.critOH,'last');
+  const ldsi = aggVal(G.dsi,'last');
+  set('pp-over',  fmt(lo));
+  set('pp-under', fmt(lu));
+  set('pp-crit',  fmt(lc));
+  set('pp-dsi',   fmt(ldsi));
+  const dsiS = document.getElementById('pp-dsi-s');
+  if(dsiS){ dsiS.className='kpi-sub '+(ldsi&&ldsi>60?'r':ldsi&&ldsi>30?'w':'g'); dsiS.textContent='Hari'; }
+  set('pp-over2',  fmt(aggVal(G.overWIP,'last')));
+  set('pp-under2', fmt(aggVal(G.underWIP,'last')));
+  set('pp-wip',    fmt(aggVal(G.wip,'last')));
+  set('pp-od',     fmt(aggVal(G.od,'last')));
+
+  mkC('pp-c1','line',L,[
+    {label:'Overstock', data:filtered(G.overOH).data, borderColor:'#f0564a',backgroundColor:'rgba(240,86,74,.08)',borderWidth:2,pointRadius:1,fill:true,tension:.3},
+    {label:'Critical',  data:filtered(G.critOH).data, borderColor:'#f5a623',borderWidth:2,pointRadius:1,fill:false,tension:.3},
+    {label:'Understock',data:filtered(G.underOH).data,borderColor:'#3d87f5',borderWidth:2,pointRadius:1,fill:false,tension:.3}
+  ],'SKU');
+  mkC('pp-c2','line',L,[
+    {label:'DSI',data:filtered(G.dsi).data,borderColor:'#9d7ff5',backgroundColor:'rgba(157,127,245,.1)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
+  ],'Hari');
+  mkC('pp-c3','line',L,[
+    {label:'WIP',data:filtered(G.wip).data.map(v=>v?Math.round(v/1000):null),borderColor:'#22d9a0',borderWidth:2,pointRadius:1,fill:false,tension:.3},
+    {label:'OD', data:filtered(G.od).data.map(v=>v?Math.round(v/1000):null), borderColor:'#f5a623',borderWidth:2,pointRadius:1,fill:false,tension:.3}
   ],'Ribu Pcs');
 
-  mkChart('c14','bar',dates,[
-    {label:'PO',data:poBerjalan,backgroundColor:'rgba(167,139,250,.5)',borderColor:'#a78bfa',borderWidth:0,borderRadius:3}
-  ],'Jumlah PO');
+  const tbody = document.getElementById('pp-tbl');
+  tbody.innerHTML = L.map(d => {
+    const i = G.dates.indexOf(d);
+    return `<tr>
+      <td>${d}</td><td>${fmt(G.overOH[i])}</td><td>${fmt(G.underOH[i])}</td>
+      <td>${fmt(G.critOH[i])}</td><td>${fmt(G.dsi[i])}</td>
+      <td>${fmt(G.wip[i])}</td><td>${fmt(G.od[i])}</td>
+      <td>${fmt(G.overWIP[i])}</td><td>${fmt(G.underWIP[i])}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" class="empty">Tidak ada data</td></tr>';
+}
 
-  mkChart('c15','bar',dates,[
-    {label:'Qty',data:poQty,backgroundColor:'rgba(75,140,245,.5)',borderColor:'#4b8cf5',borderWidth:0,borderRadius:3}
+// ========== PURCHASING ==========
+function renderPurchasing() {
+  const { labels:L } = filtered(G.poBerjalan);
+  const lpo  = aggVal(G.poBerjalan,'last');
+  const llat = aggVal(G.poLambat,'last');
+  set('pu-po',  fmt(lpo));
+  set('pu-lat', llat ? fmt(llat) : '0');
+  const latS = document.getElementById('pu-lat-s');
+  if(latS){ latS.className='kpi-sub '+(llat&&llat>0?'r':'g'); latS.textContent='PO'; }
+  set('pu-qty', fmt(aggVal(G.poQty,'last')));
+
+  mkC('pu-c1','bar',L,[
+    {label:'PO',data:filtered(G.poBerjalan).data,backgroundColor:'rgba(157,127,245,.5)',borderColor:'#9d7ff5',borderWidth:0,borderRadius:3}
+  ],'Jumlah PO');
+  mkC('pu-c2','bar',L,[
+    {label:'Qty',data:filtered(G.poQty).data,backgroundColor:'rgba(61,135,245,.5)',borderColor:'#3d87f5',borderWidth:0,borderRadius:3}
   ],'Pcs');
 
-  // PO Table
-  const tbody=document.getElementById('po-table-body');
-  tbody.innerHTML='';
-  dates.forEach((d,i)=>{
-    const po=poBerjalan[i], lat=poLambat[i], roll=poRoll[i], qty=poQty[i];
-    if(po===null&&qty===null) return;
-    const status=lat&&lat>0?`<span class="pill pill-r">${fmt(lat)} Terlambat</span>`:
-                 po&&po>15  ?`<span class="pill pill-w">Tinggi</span>`:
-                              `<span class="pill pill-g">Normal</span>`;
-    tbody.innerHTML+=`<tr><td>${d}</td><td>${fmt(po)}</td><td>${fmt(roll)}</td><td>${fmt(qty)}</td><td>${status}</td></tr>`;
-  });
+  const tbody = document.getElementById('pu-tbl');
+  tbody.innerHTML = L.map(d => {
+    const i = G.dates.indexOf(d);
+    const lat = G.poLambat[i]; const po = G.poBerjalan[i];
+    const status = lat&&lat>0?`<span class="badge badge-r">${fmt(lat)} Terlambat</span>`:
+                   po&&po>15 ?`<span class="badge badge-w">Tinggi</span>`:
+                               `<span class="badge badge-g">Normal</span>`;
+    return `<tr><td>${d}</td><td>${fmt(po)}</td><td>${fmt(lat)||'0'}</td><td>${fmt(G.poRoll[i])}</td><td>${fmt(G.poQty[i])}</td><td>${status}</td></tr>`;
+  }).join('') || '<tr><td colspan="6" class="empty">Tidak ada data</td></tr>';
 }
 
-const tabTitles={overview:'Overview',production:'Production',dc:'Distribution Center',ppic:'PPIC & Stock',purchasing:'Purchasing'};
-function showTab(id,btn){
-  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
-  document.getElementById('tab-'+id).classList.add('active');
+// ---- PAGE NAVIGATION ----
+const PAGE_TITLES = { overview:'Overview', production:'Production', dc:'Distribution Center', ppic:'PPIC & Stock', purchasing:'Purchasing' };
+
+function goPage(id, btn) {
+  activePage = id;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
   if(btn) btn.classList.add('active');
-  setText('page-title',tabTitles[id]||id);
+  set('page-ttl', PAGE_TITLES[id]||id);
 }
 
+// ---- INIT ----
 loadData();
 </script>
 </body>
