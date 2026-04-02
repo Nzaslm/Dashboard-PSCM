@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard PSCM</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root {
+  --bg:      #f4f6fa;
+  --bg2:     #ffffff;
+  --bg3:     #f0f2f7;
+  --bg4:     #e8ebf2;
+  --border:  #e2e6ef;
+  --border2: #c8cfe0;
+  --text:    #1a2035;
+  --text2:   #5a6480;
+  --text3:   #9aa3bb;
+  --blue:    #2563eb;
+  --blue-l:  #eff4ff;
+  --green:   #059669;
+  --green-l: #ecfdf5;
+  --red:     #dc2626;
+  --red-l:   #fef2f2;
+  --amber:   #d97706;
+  --amber-l: #fffbeb;
+  --purple:  #7c3aed;
+  --purple-l:#f5f3ff;
+  --cyan:    #0891b2;
+  --cyan-l:  #ecfeff;
+  --r:12px; --rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px}
+
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:210px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sb-brand{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+.sb-logo{width:34px;height:34px;background:var(--blue);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.sb-logo svg{width:18px;height:18px;fill:white}
+.sb-title{font-size:13px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.sb-sub{font-size:10px;color:var(--text3);margin-top:1px;font-family:'JetBrains Mono',monospace}
+.sb-nav{padding:12px 10px;flex:1;overflow-y:auto}
+.sb-group{font-size:9px;font-weight:700;color:var(--text3);letter-spacing:1.2px;text-transform:uppercase;padding:0 8px;margin:14px 0 6px}
+.sb-group:first-child{margin-top:4px}
+.nav-btn{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:none;background:none;color:var(--text2);font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:500;border-radius:var(--rs);cursor:pointer;transition:all .15s;text-align:left}
+.nav-btn svg{width:15px;height:15px;flex-shrink:0}
+.nav-btn:hover{background:var(--bg3);color:var(--text)}
+.nav-btn.active{background:var(--blue-l);color:var(--blue);font-weight:600}
+.nav-btn.active svg{color:var(--blue)}
+.sb-footer{padding:14px 18px;border-top:1px solid var(--border)}
+.live-row{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* TOPBAR */
+.topbar{height:54px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.tb-title{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px}
+.tb-right{display:flex;align-items:center;gap:8px}
+.tb-badge{font-size:10px;color:var(--text2);background:var(--bg3);padding:5px 11px;border-radius:var(--rs);border:1px solid var(--border);font-family:'JetBrains Mono',monospace}
+.tb-btn{font-size:11px;color:var(--text2);background:var(--bg2);padding:5px 12px;border-radius:var(--rs);border:1px solid var(--border);font-family:'Plus Jakarta Sans',sans-serif;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s}
+.tb-btn:hover{background:var(--bg3);border-color:var(--border2);color:var(--text)}
+.tb-btn svg{width:12px;height:12px}
+.mode-badge{font-size:10px;font-weight:600;padding:4px 10px;border-radius:20px}
+.mode-all{background:var(--blue-l);color:var(--blue)}
+.mode-day{background:var(--green-l);color:var(--green)}
+
+/* DATE BAR */
+.datebar{padding:9px 24px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;gap:10px;flex-shrink:0;overflow-x:auto}
+.datebar::-webkit-scrollbar{height:3px}
+.datebar::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.db-label{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap}
+.date-tabs{display:flex;gap:4px}
+.dt{padding:5px 12px;border-radius:var(--rs);font-size:11px;font-weight:500;font-family:'JetBrains Mono',monospace;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text3);transition:all .15s;white-space:nowrap}
+.dt:hover{border-color:var(--border2);color:var(--text2)}
+.dt.active{background:var(--blue-l);border-color:#bfcffe;color:var(--blue)}
+.dt.dt-all{font-weight:700}
+.dt.dt-all.active{background:var(--blue);color:white;border-color:var(--blue)}
+
+/* SCROLL */
+.scroll{flex:1;overflow-y:auto;padding:20px 24px;background:var(--bg)}
+.scroll::-webkit-scrollbar{width:5px}
+.scroll::-webkit-scrollbar-track{background:transparent}
+.scroll::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+
+/* PAGES */
+.page{display:none}
+.page.active{display:block;animation:fadein .18s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* KPI ROWS */
+.kpi-row{display:grid;gap:12px;margin-bottom:14px}
+.kpi-4{grid-template-columns:repeat(4,1fr)}
+.kpi-3{grid-template-columns:repeat(3,1fr)}
+.kpi-5{grid-template-columns:repeat(5,1fr)}
+
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:box-shadow .15s,transform .15s}
+.kpi:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);transform:translateY(-1px)}
+.kpi-top{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
+.kpi-icon{width:32px;height:32px;border-radius:var(--rs);display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.kpi-icon svg{width:16px;height:16px}
+.kpi-lbl{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}
+.kpi-val{font-size:26px;font-weight:600;font-family:'JetBrains Mono',monospace;letter-spacing:-1px;color:var(--text);line-height:1;margin-bottom:5px}
+.kpi-sub{font-size:10px;font-weight:500;display:flex;align-items:center;gap:3px}
+.kpi-sub.g{color:var(--green)}.kpi-sub.w{color:var(--amber)}.kpi-sub.r{color:var(--red)}.kpi-sub.n{color:var(--text3)}.kpi-sub.b{color:var(--blue)}
+
+/* CHART GRIDS */
+.cg2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.cg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.cgfull{margin-bottom:12px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px;transition:box-shadow .15s}
+.card:hover{box-shadow:0 2px 12px rgba(0,0,0,.05)}
+.card.span2{grid-column:span 2}
+.card-head{margin-bottom:12px}
+.card-title{font-size:12px;font-weight:700;color:var(--text)}
+.card-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.leg-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+.leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);font-weight:500}
+.ld{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+
+/* ALERT */
+.alert{display:none;background:var(--red-l);border:1px solid #fecaca;border-radius:var(--rs);padding:10px 14px;font-size:11px;color:var(--red);margin-bottom:14px;align-items:flex-start;gap:8px;font-weight:500}
+.alert svg{flex-shrink:0;margin-top:1px}
+
+/* SECTION TITLE */
+.sec-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+.sec-title::before{content:'';width:3px;height:14px;background:var(--blue);border-radius:2px}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead tr{background:var(--bg3);border-bottom:2px solid var(--border)}
+th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);padding:9px 12px;text-align:left;white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text2);font-family:'JetBrains Mono',monospace;white-space:nowrap;font-size:11px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;font-family:'Plus Jakarta Sans',sans-serif}
+.bg{background:var(--green-l);color:var(--green)}
+.bw{background:var(--amber-l);color:var(--amber)}
+.br{background:var(--red-l);color:var(--red)}
+.bb{background:var(--blue-l);color:var(--blue)}
+
+/* COMPARISON BARS */
+.cmp-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.cmp-row:last-child{border-bottom:none}
+.cmp-lbl{font-size:11px;color:var(--text2);font-weight:500;min-width:60px}
+.cmp-bw{flex:1;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden}
+.cmp-b{height:100%;border-radius:4px;transition:width .5s ease}
+.cmp-v{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text);min-width:80px;text-align:right;font-weight:500}
+
+/* EMPTY */
+.empty{text-align:center;padding:36px;color:var(--text3);font-size:12px}
+
+/* LOADER */
+.loader{position:fixed;inset:0;background:rgba(255,255,255,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:14px}
+.spin{width:34px;height:34px;border:3px solid var(--bg4);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace}
+
+/* SUMMARY ROW */
+.sumrow{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.sum-chip{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:8px 14px;font-size:11px;display:flex;align-items:center;gap:6px;font-weight:500}
+.sum-chip span{font-family:'JetBrains Mono',monospace;font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="spin"></div>
+  <div class="load-txt" id="load-msg">Memuat data PSCM...</div>
+</div>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg></div>
+      <div class="sb-title">PSCM Dashboard</div>
+      <div class="sb-sub">Supply Chain Monitor</div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-group">Halaman</div>
+      <button class="nav-btn active" onclick="goPage('overview',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Overview
+      </button>
+      <button class="nav-btn" onclick="goPage('production',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M6 20V10l6-7 6 7v10M10 20v-5h4v5"/></svg>
+        Production
+      </button>
+      <button class="nav-btn" onclick="goPage('dc',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        Distribution Center
+      </button>
+      <button class="nav-btn" onclick="goPage('ppic',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        PPIC &amp; Stock
+      </button>
+      <button class="nav-btn" onclick="goPage('purchasing',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg>
+        Purchasing
+      </button>
+    </div>
+    <div class="sb-footer">
+      <div class="live-row"><span class="pulse"></span><span id="live-range">Memuat...</span></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="tb-title" id="page-ttl">Overview</div>
+        <span class="mode-badge mode-all" id="mode-badge">Semua Tanggal</span>
+      </div>
+      <div class="tb-right">
+        <button class="tb-btn" onclick="loadData()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Refresh Data
+        </button>
+        <div class="tb-badge" id="last-upd">—</div>
+      </div>
+    </div>
+
+    <!-- DATE CONTROL BAR -->
+    <div class="datebar">
+      <div class="db-label">Filter</div>
+      <div class="date-tabs" id="date-tabs"></div>
+    </div>
+
+    <div class="scroll">
+
+      <!-- ====== OVERVIEW ====== -->
+      <div class="page active" id="page-overview">
+        <div class="alert" id="alert-ov">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="alert-ov-txt"></span>
+        </div>
+
+        <div class="kpi-row kpi-5">
+          <div class="kpi">
+            <div class="kpi-top" style="background:var(--blue)"></div>
+            <div class="kpi-icon" style="background:var(--blue-l)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            <div class="kpi-lbl">Barang ke DC</div>
+            <div class="kpi-val" id="ov-shipped">—</div>
+            <div class="kpi-sub n">Pcs</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-top" style="background:var(--amber)"></div>
+            <div class="kpi-icon" style="background:var(--amber-l)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+            <div class="kpi-lbl">Reject Rate Avg</div>
+            <div class="kpi-val" id="ov-rr">—</div>
+            <div class="kpi-sub" id="ov-rr-s">Target ≤ 0,65%</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-top" style="background:var(--green)"></div>
+            <div class="kpi-icon" style="background:var(--green-l)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="kpi-lbl">Akurasi Cycle Count</div>
+            <div class="kpi-val" id="ov-acc">—</div>
+            <div class="kpi-sub g">Target 95%</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-top" style="background:var(--red)"></div>
+            <div class="kpi-icon" style="background:var(--red-l)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+            <div class="kpi-lbl">DSI Stok</div>
+            <div class="kpi-val" id="ov-dsi">—</div>
+            <div class="kpi-sub" id="ov-dsi-s">Hari</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-top" style="background:var(--purple)"></div>
+            <div class="kpi-icon" style="background:var(--purple-l)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>
+            <div class="kpi-lbl">Overstock SKU</div>
+            <div class="kpi-val" id="ov-over">—</div>
+            <div class="kpi-sub" id="ov-over-s">SKU (OH+OD)</div>
+          </div>
+        </div>
+
+        <div class="cg2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Output Produksi vs Target</div><div class="card-sub">Pcs/hari · After QC · Target 1.000</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#2563eb"></span>Actual</span><span class="leg"><span class="ld" style="background:#dc2626;opacity:.4"></span>Target 1.000</span></div>
+            <div style="position:relative;height:190px"><canvas id="ov-c1"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Reject Rate Harian (%)</div><div class="card-sub">Target ≤ 0,65%</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#dc2626"></span>Reject Rate</span><span class="leg"><span class="ld" style="background:#d97706;opacity:.5"></span>Target</span></div>
+            <div style="position:relative;height:190px"><canvas id="ov-c2"></canvas></div>
+          </div>
+        </div>
+
+        <div class="cg3">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Komposisi SKU Stok</div><div class="card-sub">OH + OD Store — terkini</div></div>
+            <div class="leg-row">
+              <span class="leg"><span class="ld" style="background:#dc2626"></span><span id="leg-ov-over">Overstock</span></span>
+              <span class="leg"><span class="ld" style="background:#d97706"></span><span id="leg-ov-crit">Critical</span></span>
+              <span class="leg"><span class="ld" style="background:#2563eb"></span><span id="leg-ov-under">Understock</span></span>
+            </div>
+            <div style="position:relative;height:190px"><canvas id="ov-c3"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">DC Movement</div><div class="card-sub">Inbound vs Outbound (Pcs)</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#059669"></span>Outbound</span><span class="leg"><span class="ld" style="background:#2563eb"></span>Inbound</span></div>
+            <div style="position:relative;height:190px"><canvas id="ov-c4"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">DSI Stok Trend</div><div class="card-sub">Days Sales Inventory</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#7c3aed"></span>DSI (Hari)</span></div>
+            <div style="position:relative;height:190px"><canvas id="ov-c5"></canvas></div>
+          </div>
+        </div>
+
+        <div class="sec-title">Perbandingan Produktivitas per Tanggal</div>
+        <div class="card cgfull">
+          <div id="prod-cmp"></div>
+        </div>
+      </div>
+
+      <!-- ====== PRODUCTION ====== -->
+      <div class="page" id="page-production">
+        <div class="kpi-row kpi-4">
+          <div class="kpi"><div class="kpi-top" style="background:var(--blue)"></div><div class="kpi-lbl">Barang Dikirim DC</div><div class="kpi-val" id="pr-ship">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--green)"></div><div class="kpi-lbl">Output After QC</div><div class="kpi-val" id="pr-out">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--blue)"></div><div class="kpi-lbl">Manpower</div><div class="kpi-val" id="pr-mp">—</div><div class="kpi-sub n">Orang</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--amber)"></div><div class="kpi-lbl">Produktivitas Avg</div><div class="kpi-val" id="pr-prod">—</div><div class="kpi-sub n">Pcs/Hari/Org</div></div>
+        </div>
+        <div class="kpi-row kpi-4">
+          <div class="kpi"><div class="kpi-top" style="background:var(--red)"></div><div class="kpi-lbl">Reject Rate</div><div class="kpi-val" id="pr-rr">—</div><div class="kpi-sub" id="pr-rr-s">%</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--red)"></div><div class="kpi-lbl">Reject Material</div><div class="kpi-val" id="pr-rm">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--amber)"></div><div class="kpi-lbl">Reject Proses</div><div class="kpi-val" id="pr-rp">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--cyan)"></div><div class="kpi-lbl">Sisa Defect Rework</div><div class="kpi-val" id="pr-def">—</div><div class="kpi-sub n">Pcs</div></div>
+        </div>
+        <div class="cg2">
+          <div class="card span2">
+            <div class="card-head"><div class="card-title">Output Produksi vs Target (1.000 pcs/hari)</div><div class="card-sub">After QC</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#2563eb"></span>Actual</span><span class="leg"><span class="ld" style="background:#dc2626;opacity:.4"></span>Target 1.000</span></div>
+            <div style="position:relative;height:200px"><canvas id="pr-c1"></canvas></div>
+          </div>
+        </div>
+        <div class="cg2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Reject Material &amp; Proses</div><div class="card-sub">Pcs/hari</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#dc2626"></span>Material</span><span class="leg"><span class="ld" style="background:#d97706"></span>Proses</span></div>
+            <div style="position:relative;height:190px"><canvas id="pr-c2"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Produktivitas Harian</div><div class="card-sub">Pcs/Hari/Orang — Target 71,4</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#059669"></span>Aktual</span><span class="leg"><span class="ld" style="background:#dc2626;opacity:.4"></span>Target 71,4</span></div>
+            <div style="position:relative;height:190px"><canvas id="pr-c3"></canvas></div>
+          </div>
+        </div>
+        <div class="sec-title">Detail Harian Production</div>
+        <div class="card">
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Tanggal</th><th>Kirim DC</th><th>Output QC</th><th>Manpower</th><th>Produktivitas</th><th>Rej Material</th><th>Rej Proses</th><th>Reject Rate</th><th>Status</th></tr></thead>
+            <tbody id="pr-tbl"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- ====== DC ====== -->
+      <div class="page" id="page-dc">
+        <div class="kpi-row kpi-4">
+          <div class="kpi"><div class="kpi-top" style="background:var(--green)"></div><div class="kpi-lbl">Total Outbound</div><div class="kpi-val" id="dc-out">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--blue)"></div><div class="kpi-lbl">Total Inbound</div><div class="kpi-val" id="dc-in">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--purple)"></div><div class="kpi-lbl">Total Movement</div><div class="kpi-val" id="dc-mov">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--amber)"></div><div class="kpi-lbl">Manpower DC</div><div class="kpi-val" id="dc-mp">—</div><div class="kpi-sub n">Orang</div></div>
+        </div>
+        <div class="kpi-row kpi-4">
+          <div class="kpi"><div class="kpi-top" style="background:var(--green)"></div><div class="kpi-lbl">Akurasi Cycle Count</div><div class="kpi-val" id="dc-acc">—</div><div class="kpi-sub g">Target 95%</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--blue)"></div><div class="kpi-lbl">SKU Hit</div><div class="kpi-val" id="dc-hit">—</div><div class="kpi-sub n">SKU</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--red)"></div><div class="kpi-lbl">SKU Miss</div><div class="kpi-val" id="dc-miss">—</div><div class="kpi-sub n">SKU</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--cyan)"></div><div class="kpi-lbl">Produktivitas DC</div><div class="kpi-val" id="dc-prod">—</div><div class="kpi-sub n">Pcs/Hari/Org</div></div>
+        </div>
+        <div class="cg2">
+          <div class="card span2">
+            <div class="card-head"><div class="card-title">Inbound vs Outbound vs Total Movement</div><div class="card-sub">Pcs/hari</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#7c3aed;opacity:.5"></span>Total Movement</span><span class="leg"><span class="ld" style="background:#059669"></span>Outbound</span><span class="leg"><span class="ld" style="background:#2563eb"></span>Inbound</span></div>
+            <div style="position:relative;height:200px"><canvas id="dc-c1"></canvas></div>
+          </div>
+        </div>
+        <div class="cg2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Akurasi Cycle Count (%)</div><div class="card-sub">Target 95%</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#059669"></span>Akurasi</span><span class="leg"><span class="ld" style="background:#dc2626;opacity:.4"></span>Target 95%</span></div>
+            <div style="position:relative;height:190px"><canvas id="dc-c2"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">SKU Hit vs Miss</div><div class="card-sub">Per hari</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#059669"></span>Hit</span><span class="leg"><span class="ld" style="background:#dc2626"></span>Miss</span></div>
+            <div style="position:relative;height:190px"><canvas id="dc-c3"></canvas></div>
+          </div>
+        </div>
+        <div class="sec-title">Detail Harian DC</div>
+        <div class="card">
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Tanggal</th><th>Outbound</th><th>Inbound</th><th>Total Mov.</th><th>MP DC</th><th>Produktivitas</th><th>SKU CC</th><th>Hit</th><th>Miss</th><th>Akurasi CC</th></tr></thead>
+            <tbody id="dc-tbl"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- ====== PPIC ====== -->
+      <div class="page" id="page-ppic">
+        <div class="kpi-row kpi-4">
+          <div class="kpi"><div class="kpi-top" style="background:var(--red)"></div><div class="kpi-lbl">Overstock OH+OD</div><div class="kpi-val" id="pp-over">—</div><div class="kpi-sub" id="pp-over-s">SKU</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--blue)"></div><div class="kpi-lbl">Understock OH+OD</div><div class="kpi-val" id="pp-under">—</div><div class="kpi-sub g">SKU</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--amber)"></div><div class="kpi-lbl">Critical Stock</div><div class="kpi-val" id="pp-crit">—</div><div class="kpi-sub w">SKU</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--purple)"></div><div class="kpi-lbl">DSI Stok</div><div class="kpi-val" id="pp-dsi">—</div><div class="kpi-sub" id="pp-dsi-s">Hari</div></div>
+        </div>
+        <div class="kpi-row kpi-4">
+          <div class="kpi"><div class="kpi-top" style="background:var(--red)"></div><div class="kpi-lbl">Overstock OH+OD+WIP</div><div class="kpi-val" id="pp-over2">—</div><div class="kpi-sub n">SKU</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--blue)"></div><div class="kpi-lbl">Understock OH+OD+WIP</div><div class="kpi-val" id="pp-under2">—</div><div class="kpi-sub n">SKU</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--green)"></div><div class="kpi-lbl">WIP</div><div class="kpi-val" id="pp-wip">—</div><div class="kpi-sub n">Pcs</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--cyan)"></div><div class="kpi-lbl">On Delivery (OD)</div><div class="kpi-val" id="pp-od">—</div><div class="kpi-sub n">Pcs</div></div>
+        </div>
+        <div class="cg2">
+          <div class="card span2">
+            <div class="card-head"><div class="card-title">Trend SKU Status (OH + OD Store)</div><div class="card-sub">Overstock, Understock, Critical per hari</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#dc2626"></span>Overstock</span><span class="leg"><span class="ld" style="background:#d97706"></span>Critical</span><span class="leg"><span class="ld" style="background:#2563eb"></span>Understock</span></div>
+            <div style="position:relative;height:200px"><canvas id="pp-c1"></canvas></div>
+          </div>
+        </div>
+        <div class="cg2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">DSI Stok</div><div class="card-sub">Days Sales Inventory (Hari)</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#7c3aed"></span>DSI</span></div>
+            <div style="position:relative;height:190px"><canvas id="pp-c2"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">WIP &amp; OD Trend</div><div class="card-sub">Ribu Pcs</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#059669"></span>WIP</span><span class="leg"><span class="ld" style="background:#d97706"></span>OD</span></div>
+            <div style="position:relative;height:190px"><canvas id="pp-c3"></canvas></div>
+          </div>
+        </div>
+        <div class="sec-title">Detail Harian PPIC</div>
+        <div class="card">
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Tanggal</th><th>Overstock</th><th>Understock</th><th>Critical</th><th>DSI</th><th>WIP</th><th>OD</th><th>Over+WIP</th><th>Under+WIP</th></tr></thead>
+            <tbody id="pp-tbl"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- ====== PURCHASING ====== -->
+      <div class="page" id="page-purchasing">
+        <div class="kpi-row kpi-3">
+          <div class="kpi"><div class="kpi-top" style="background:var(--blue)"></div><div class="kpi-lbl">PO Berjalan Aktif</div><div class="kpi-val" id="pu-po">—</div><div class="kpi-sub n">PO aktif terkini</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--red)"></div><div class="kpi-lbl">PO Terlambat</div><div class="kpi-val" id="pu-lat">—</div><div class="kpi-sub" id="pu-lat-s">PO</div></div>
+          <div class="kpi"><div class="kpi-top" style="background:var(--green)"></div><div class="kpi-lbl">Qty PO (Pcs)</div><div class="kpi-val" id="pu-qty">—</div><div class="kpi-sub n">Pcs</div></div>
+        </div>
+        <div class="cg2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Trend PO Berjalan</div><div class="card-sub">Jumlah PO aktif per hari</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#7c3aed"></span>PO Berjalan</span></div>
+            <div style="position:relative;height:190px"><canvas id="pu-c1"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Qty PO Berjalan (Pcs)</div><div class="card-sub">Volume pembelian per hari</div></div>
+            <div class="leg-row"><span class="leg"><span class="ld" style="background:#2563eb"></span>Qty PO</span></div>
+            <div style="position:relative;height:190px"><canvas id="pu-c2"></canvas></div>
+          </div>
+        </div>
+        <div class="sec-title">Detail PO Harian</div>
+        <div class="card">
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Tanggal</th><th>PO Aktif</th><th>PO Terlambat</th><th>PO Roll</th><th>Qty (Pcs)</th><th>Status</th></tr></thead>
+            <tbody id="pu-tbl"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+    </div><!-- /scroll -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ============================================================
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQfrW1wozw68VihcYRbFZFAbBmo0CDuLWRcbX_TsyBMcSnKkKWlIyKnqAbukZM5FG8g12ga2dApCpNQ/pub?gid=0&single=true&output=csv';
+// ============================================================
+
+let G = {}, activeDate = 'all';
+const CHARTS = {};
+const gc = '#f0f2f7', tc = '#9aa3bb';
+
+function mkC(id, type, labels, datasets, yLbl='') {
+  if (CHARTS[id]) CHARTS[id].destroy();
+  const el = document.getElementById(id); if (!el) return;
+  CHARTS[id] = new Chart(el, {
+    type, data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor:'#1a2035', borderColor:'#e2e6ef', borderWidth:1, titleColor:'#fff', bodyColor:'#9aa3bb', padding:10, cornerRadius:8 }
+      },
+      scales: {
+        x: { ticks:{color:tc,font:{size:9,family:"'JetBrains Mono'"},maxRotation:45,autoSkip:true,maxTicksLimit:14}, grid:{color:gc,lineWidth:1} },
+        y: { ticks:{color:tc,font:{size:9,family:"'JetBrains Mono'"}}, grid:{color:gc,lineWidth:1},
+             title: yLbl?{display:true,text:yLbl,color:tc,font:{size:9}}:{display:false} }
+      }
+    }
+  });
+}
+
+function pn(v) {
+  if (v===null||v===undefined) return null;
+  const s = String(v).trim();
+  if (!s||s==='-'||/div/i.test(s)||/^#/.test(s)) return null;
+  const n = parseFloat(s.replace(/[^\d.\-]/g,''));
+  return isNaN(n) ? null : n;
+}
+
+function fmt(n,d=0) { if(n===null||n===undefined||isNaN(n)) return '—'; return n.toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function last(a) { for(let i=a.length-1;i>=0;i--) if(a[i]!==null&&!isNaN(a[i])) return a[i]; return null; }
+function avg(a)  { const v=a.filter(x=>x!==null&&!isNaN(x)); return v.length?v.reduce((s,x)=>s+x,0)/v.length:null; }
+function sum(a)  { return a.filter(x=>x!==null&&!isNaN(x)).reduce((s,x)=>s+x,0); }
+function set(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
+
+function loadData() {
+  document.getElementById('loader').style.display='flex';
+  Papa.parse(CSV_URL+'&t='+Date.now(), {
+    download:true, header:false, skipEmptyLines:false,
+    complete: res => {
+      try { parseCSV(res.data); document.getElementById('loader').style.display='none';
+            const n=new Date(); set('last-upd',n.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB'); }
+      catch(e) { document.getElementById('loader').style.display='none'; alert('Error: '+e.message); console.error(e); }
+    },
+    error: e => { document.getElementById('loader').style.display='none'; alert('Gagal: '+e); }
+  });
+}
+
+function parseCSV(raw) {
+  let hIdx=-1;
+  for(let i=0;i<raw.length;i++){
+    const j=raw[i].join('|').toLowerCase();
+    if(j.includes('divisi')&&j.includes('indikator')){hIdx=i;break;}
+  }
+  if(hIdx<0) throw new Error('Header tidak ditemukan');
+  const hRow=raw[hIdx];
+  const allDates=[];
+  for(let i=3;i<hRow.length;i++){const d=String(hRow[i]||'').trim();if(d) allDates.push(d);}
+
+  const rows=[]; let lastDiv='';
+  for(let i=hIdx+1;i<raw.length;i++){
+    const r=raw[i]; if(!r||r.length<2) continue;
+    const div=String(r[0]||'').trim(), ind=String(r[1]||'').trim();
+    if(!ind) continue;
+    if(div) lastDiv=div;
+    const obj={Div:lastDiv,Ind:ind,Tgt:pn(r[2])};
+    allDates.forEach((d,idx)=>{obj[d]=pn(r[3+idx]);});
+    rows.push(obj);
+  }
+
+  const findRow=(kw,divKw='')=>rows.find(r=>{
+    const m=r.Ind.toLowerCase().includes(kw.toLowerCase());
+    return divKw?m&&r.Div.toLowerCase().includes(divKw.toLowerCase()):m;
+  })||null;
+  const vals=row=>row?allDates.map(d=>row[d]):allDates.map(()=>null);
+
+  G = {
+    dates:allDates,
+    shipped:   vals(findRow('Barang Dikirim ke DC')),
+    rejMat:    vals(findRow('Reject Material')),
+    rejProc:   vals(findRow('Reject Process')),
+    rejRate:   vals(findRow('Reject Rate')),
+    outQC:     vals(findRow('Output Produksi')),
+    manpower:  vals(findRow('Jumlah Manpower')),
+    prodPerf:  vals(findRow('Productivity (Pcs/Day')||findRow('Productivity','Production')),
+    reworkQty: vals(findRow('Qty Finish Good')),
+    defectSisa:vals(findRow('Sisa Product Defect (Rework)')),
+    outbound:  vals(findRow('Jumlah Outbond')),
+    inbound:   vals(findRow('Jumlah Inbond')),
+    totalMov:  vals(findRow('Total movement')),
+    mpDC:      vals(findRow('Jumlah MP DC')),
+    prodDC:    vals(findRow('Productivity','DC')||findRow('Productivity (Pcs/Day/Orang)')),
+    skuCC:     vals(findRow('Jumlah SKU Cycle Count')),
+    skuHit:    vals(findRow('SKU HIT')),
+    skuMiss:   vals(findRow('SKU Miss')),
+    accCC:     vals(findRow('Akurasi Cycle Count')),
+    overOH:    vals(rows.find(r=>r.Ind.toLowerCase().includes('overstock')&&r.Ind.toLowerCase().includes('oh + od store'))||findRow('OverStock')),
+    underOH:   vals(rows.find(r=>r.Ind.toLowerCase().includes('under stock')&&r.Ind.toLowerCase().includes('oh + od store'))||findRow('Under Stock')),
+    critOH:    vals(rows.find(r=>r.Ind.toLowerCase().includes('critical stock')&&r.Ind.toLowerCase().includes('oh + od store'))||findRow('Critical Stock')),
+    overWIP:   vals(rows.find(r=>r.Ind.toLowerCase().includes('overstock')&&r.Ind.toLowerCase().includes('oh+od+wip'))||null),
+    underWIP:  vals(rows.find(r=>r.Ind.toLowerCase().includes('under stock')&&r.Ind.toLowerCase().includes('oh+od+wip'))||null),
+    dsi:       vals(findRow('DSI Stok')),
+    wip:       vals(findRow('WIP')),
+    od:        vals(rows.find(r=>r.Ind.trim()==='OD')||findRow('\nOD')),
+    poBerjalan:vals(rows.find(r=>r.Ind.toLowerCase().includes('po berjalan (po)'))||findRow('PO Berjalan (PO')),
+    poLambat:  vals(findRow('Terlambat')),
+    poRoll:    vals(findRow('Roll')),
+    poQty:     vals(rows.find(r=>r.Ind.toLowerCase().includes('po berjalan (pcs)'))||findRow('PO Berjalan (Pcs')),
+  };
+  G.rrPct  = G.rejRate.map(v=>v===null?null:(v<=1?v*100:v));
+  G.accPct = G.accCC.map(v=>v===null?null:(v<=1?v*100:v));
+
+  set('live-range', allDates[0]+' – '+allDates[allDates.length-1]);
+  buildDateTabs(allDates);
+  render();
+}
+
+function buildDateTabs(dates) {
+  const wrap=document.getElementById('date-tabs'); wrap.innerHTML='';
+  const allBtn=document.createElement('button');
+  allBtn.className='dt dt-all active'; allBtn.textContent='Semua';
+  allBtn.onclick=()=>selectDate('all',allBtn); wrap.appendChild(allBtn);
+  dates.forEach(d=>{
+    const btn=document.createElement('button');
+    btn.className='dt'; btn.textContent=d;
+    btn.onclick=()=>selectDate(d,btn); wrap.appendChild(btn);
+  });
+}
+
+function selectDate(d,btn) {
+  activeDate=d;
+  document.querySelectorAll('.dt').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const mb=document.getElementById('mode-badge');
+  if(d==='all'){mb.textContent='Semua Tanggal';mb.className='mode-badge mode-all';}
+  else{mb.textContent=d;mb.className='mode-badge mode-day';}
+  render();
+}
+
+function filt(arr) {
+  if(activeDate==='all') return {labels:G.dates,data:arr};
+  const i=G.dates.indexOf(activeDate);
+  return i<0?{labels:[],data:[]}:{labels:[G.dates[i]],data:[arr[i]]};
+}
+
+function agg(arr,mode='last') {
+  const {data}=filt(arr);
+  if(activeDate!=='all') return data[0];
+  if(mode==='sum') return sum(data);
+  if(mode==='avg') return avg(data);
+  return last(data);
+}
+
+function render() {
+  renderOverview(); renderProduction(); renderDC(); renderPPIC(); renderPurchasing();
+}
+
+// ===== OVERVIEW =====
+function renderOverview() {
+  const ship=agg(G.shipped,'sum'), rr=agg(G.rrPct,'avg'), acc=agg(G.accPct,'last'), dsi=agg(G.dsi,'last'), ov=agg(G.overOH,'last');
+  const lo=agg(G.overOH,'last'), lu=agg(G.underOH,'last'), lc=agg(G.critOH,'last');
+
+  set('ov-shipped',fmt(ship)); set('ov-rr',fmt(rr,2)+'%'); set('ov-acc',fmt(acc,1)+'%'); set('ov-dsi',fmt(dsi)); set('ov-over',fmt(ov));
+
+  const rrEl=document.getElementById('ov-rr-s'); if(rrEl){rrEl.className='kpi-sub '+(rr&&rr>0.65?'r':'g');rrEl.textContent='Target ≤ 0,65%';}
+  const dsiEl=document.getElementById('ov-dsi-s'); if(dsiEl){dsiEl.className='kpi-sub '+(dsi&&dsi>60?'r':dsi&&dsi>30?'w':'g');dsiEl.textContent='Hari';}
+  const ovEl=document.getElementById('ov-over-s'); if(ovEl){ovEl.className='kpi-sub '+(ov&&ov>3000?'r':ov&&ov>1000?'w':'g');ovEl.textContent='SKU (OH+OD)';}
+
+  const alerts=[];
+  if(dsi&&dsi>60) alerts.push('DSI stok '+fmt(dsi)+' hari — sangat tinggi.');
+  if(ov&&ov>5000) alerts.push('Overstock SKU: '+fmt(ov)+' SKU.');
+  if(rr&&rr>0.65) alerts.push('Reject rate '+fmt(rr,2)+'% melampaui target 0,65%.');
+  const ab=document.getElementById('alert-ov');
+  if(alerts.length){ab.style.display='flex';set('alert-ov-txt',alerts.join('  ⚠  '));}
+  else ab.style.display='none';
+
+  set('leg-ov-over','Overstock ('+(lo?fmt(lo):'—')+')');
+  set('leg-ov-crit','Critical ('+(lc?fmt(lc):'—')+')');
+  set('leg-ov-under','Understock ('+(lu?fmt(lu):'—')+')');
+
+  const {labels:L}=filt(G.outQC);
+  mkC('ov-c1','bar',L,[
+    {label:'Target',data:L.map(()=>1000),type:'line',borderColor:'rgba(220,38,38,.35)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[5,4]},
+    {label:'Actual',data:filt(G.outQC).data,backgroundColor:'rgba(37,99,235,.5)',borderColor:'#2563eb',borderWidth:0,borderRadius:4}
+  ],'Pcs');
+  mkC('ov-c2','line',L,[
+    {label:'Target',data:L.map(()=>0.65),borderColor:'rgba(217,119,6,.4)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[4,4]},
+    {label:'RR',data:filt(G.rrPct).data,borderColor:'#dc2626',backgroundColor:'rgba(220,38,38,.08)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
+  ],'%');
+  mkC('ov-c3','doughnut',['Overstock','Critical','Understock'],[
+    {data:[lo||0,lc||0,lu||0],backgroundColor:['#dc2626','#d97706','#2563eb'],borderWidth:2,borderColor:'#fff',hoverOffset:4}
+  ]);
+  mkC('ov-c4','line',L,[
+    {label:'Outbound',data:filt(G.outbound).data,borderColor:'#059669',backgroundColor:'rgba(5,150,105,.08)',borderWidth:2,pointRadius:2,fill:true,tension:.3},
+    {label:'Inbound', data:filt(G.inbound).data, borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.06)', borderWidth:2,pointRadius:2,fill:true,tension:.3}
+  ],'Pcs');
+  mkC('ov-c5','line',L,[
+    {label:'DSI',data:filt(G.dsi).data,borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,.08)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
+  ],'Hari');
+
+  // Prod comparison
+  const cmp=document.getElementById('prod-cmp');
+  const {labels:cL,data:cD}=filt(G.prodPerf);
+  const maxP=Math.max(...cD.filter(v=>v!==null&&!isNaN(v)),71.4);
+  if(!cL.length){cmp.innerHTML='<div class="empty">Tidak ada data</div>';return;}
+  cmp.innerHTML=cL.map((d,i)=>{
+    const v=cD[i]; if(v===null) return '';
+    const pct=Math.min(100,(v/maxP)*100).toFixed(1);
+    const col=v>=71.4?'#059669':v>=50?'#d97706':'#dc2626';
+    const badge=v>=71.4?'<span class="badge bg">✓ Target</span>':v>=50?'<span class="badge bw">Monitor</span>':'<span class="badge br">Bawah Target</span>';
+    return `<div class="cmp-row">
+      <div class="cmp-lbl">${d}</div>
+      <div class="cmp-bw"><div class="cmp-b" style="width:${pct}%;background:${col}"></div></div>
+      <div class="cmp-v">${fmt(v,1)} <span style="font-size:9px;color:var(--text3)">pcs/org</span></div>
+      <div>${badge}</div>
+    </div>`;
+  }).join('')||'<div class="empty">Tidak ada data</div>';
+}
+
+// ===== PRODUCTION =====
+function renderProduction() {
+  const {labels:L}=filt(G.outQC);
+  const rr=agg(G.rrPct,'avg');
+  set('pr-ship',fmt(agg(G.shipped,'sum'))); set('pr-out',fmt(agg(G.outQC,'sum'))); set('pr-mp',fmt(agg(G.manpower,'last')));
+  set('pr-prod',fmt(agg(G.prodPerf,'avg'),1)); set('pr-rr',fmt(rr,2)+'%');
+  const rrS=document.getElementById('pr-rr-s'); if(rrS){rrS.className='kpi-sub '+(rr&&rr>0.65?'r':'g');rrS.textContent='%';}
+  set('pr-rm',fmt(agg(G.rejMat,'sum'))); set('pr-rp',fmt(agg(G.rejProc,'sum'))); set('pr-def',fmt(agg(G.defectSisa,'last')));
+
+  mkC('pr-c1','bar',L,[
+    {label:'Target',data:L.map(()=>1000),type:'line',borderColor:'rgba(220,38,38,.35)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[5,4]},
+    {label:'Output',data:filt(G.outQC).data,backgroundColor:'rgba(37,99,235,.5)',borderColor:'#2563eb',borderWidth:0,borderRadius:4}
+  ],'Pcs');
+  mkC('pr-c2','bar',L,[
+    {label:'Material',data:filt(G.rejMat).data,backgroundColor:'rgba(220,38,38,.6)',borderColor:'#dc2626',borderWidth:0,borderRadius:4},
+    {label:'Proses',  data:filt(G.rejProc).data,backgroundColor:'rgba(217,119,6,.6)',borderColor:'#d97706',borderWidth:0,borderRadius:4}
+  ],'Pcs');
+  mkC('pr-c3','line',L,[
+    {label:'Target',data:L.map(()=>71.4),borderColor:'rgba(220,38,38,.35)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[4,4]},
+    {label:'Prod',  data:filt(G.prodPerf).data,borderColor:'#059669',backgroundColor:'rgba(5,150,105,.08)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
+  ],'Pcs/Org');
+
+  const tbody=document.getElementById('pr-tbl');
+  tbody.innerHTML=L.map(d=>{
+    const i=G.dates.indexOf(d); const rr=G.rrPct[i]; const prod=G.prodPerf[i];
+    const st=(rr!==null&&rr<=0.65&&prod!==null&&prod>=71.4)?'<span class="badge bg">OK</span>':
+             (rr!==null&&rr>0.65)?'<span class="badge br">Reject ↑</span>':'<span class="badge bw">Monitor</span>';
+    return `<tr><td>${d}</td><td>${fmt(G.shipped[i])}</td><td>${fmt(G.outQC[i])}</td><td>${fmt(G.manpower[i])}</td><td>${fmt(prod,1)}</td><td>${fmt(G.rejMat[i])}</td><td>${fmt(G.rejProc[i])}</td><td>${fmt(rr,2)}%</td><td>${st}</td></tr>`;
+  }).join('')||'<tr><td colspan="9" class="empty">Tidak ada data</td></tr>';
+}
+
+// ===== DC =====
+function renderDC() {
+  const {labels:L}=filt(G.outbound);
+  set('dc-out',fmt(agg(G.outbound,'sum'))); set('dc-in',fmt(agg(G.inbound,'sum'))); set('dc-mov',fmt(agg(G.totalMov,'sum')));
+  set('dc-mp',fmt(agg(G.mpDC,'last'))); set('dc-acc',fmt(agg(G.accPct,'avg'),1)+'%');
+  set('dc-hit',fmt(agg(G.skuHit,'sum'))); set('dc-miss',fmt(agg(G.skuMiss,'sum'))); set('dc-prod',fmt(agg(G.prodDC,'avg'),0));
+
+  mkC('dc-c1','bar',L,[
+    {label:'Total',   data:filt(G.totalMov).data,backgroundColor:'rgba(124,58,237,.15)',borderColor:'rgba(124,58,237,.4)',borderWidth:1,borderRadius:4},
+    {label:'Outbound',data:filt(G.outbound).data,borderColor:'#059669',borderWidth:2,type:'line',pointRadius:2,fill:false,tension:.3},
+    {label:'Inbound', data:filt(G.inbound).data, borderColor:'#2563eb',borderWidth:2,type:'line',pointRadius:2,fill:false,tension:.3}
+  ],'Pcs');
+  mkC('dc-c2','line',L,[
+    {label:'Target',  data:L.map(()=>95),borderColor:'rgba(220,38,38,.35)',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[4,4]},
+    {label:'Akurasi', data:filt(G.accPct).data,borderColor:'#059669',backgroundColor:'rgba(5,150,105,.08)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
+  ],'%');
+  mkC('dc-c3','bar',L,[
+    {label:'Hit', data:filt(G.skuHit).data, backgroundColor:'rgba(5,150,105,.55)', borderColor:'#059669',borderWidth:0,borderRadius:4},
+    {label:'Miss',data:filt(G.skuMiss).data,backgroundColor:'rgba(220,38,38,.55)',borderColor:'#dc2626',borderWidth:0,borderRadius:4}
+  ],'SKU');
+
+  const tbody=document.getElementById('dc-tbl');
+  tbody.innerHTML=L.map(d=>{
+    const i=G.dates.indexOf(d); const acc=G.accPct[i];
+    return `<tr><td>${d}</td><td>${fmt(G.outbound[i])}</td><td>${fmt(G.inbound[i])}</td><td>${fmt(G.totalMov[i])}</td><td>${fmt(G.mpDC[i])}</td><td>${fmt(G.prodDC[i],0)}</td><td>${fmt(G.skuCC[i])}</td><td>${fmt(G.skuHit[i])}</td><td>${fmt(G.skuMiss[i])}</td><td>${fmt(acc,1)}%</td></tr>`;
+  }).join('')||'<tr><td colspan="10" class="empty">Tidak ada data</td></tr>';
+}
+
+// ===== PPIC =====
+function renderPPIC() {
+  const {labels:L}=filt(G.overOH);
+  const lo=agg(G.overOH,'last'), lu=agg(G.underOH,'last'), lc=agg(G.critOH,'last'), ldsi=agg(G.dsi,'last');
+  set('pp-over',fmt(lo)); set('pp-under',fmt(lu)); set('pp-crit',fmt(lc)); set('pp-dsi',fmt(ldsi));
+  const dsiS=document.getElementById('pp-dsi-s'); if(dsiS){dsiS.className='kpi-sub '+(ldsi&&ldsi>60?'r':ldsi&&ldsi>30?'w':'g');dsiS.textContent='Hari';}
+  const ovS=document.getElementById('pp-over-s'); if(ovS){ovS.className='kpi-sub '+(lo&&lo>3000?'r':'w');ovS.textContent='SKU';}
+  set('pp-over2',fmt(agg(G.overWIP,'last'))); set('pp-under2',fmt(agg(G.underWIP,'last')));
+  set('pp-wip',fmt(agg(G.wip,'last'))); set('pp-od',fmt(agg(G.od,'last')));
+
+  mkC('pp-c1','line',L,[
+    {label:'Overstock', data:filt(G.overOH).data, borderColor:'#dc2626',backgroundColor:'rgba(220,38,38,.07)',borderWidth:2,pointRadius:2,fill:true,tension:.3},
+    {label:'Critical',  data:filt(G.critOH).data, borderColor:'#d97706',borderWidth:2,pointRadius:2,fill:false,tension:.3},
+    {label:'Understock',data:filt(G.underOH).data,borderColor:'#2563eb',borderWidth:2,pointRadius:2,fill:false,tension:.3}
+  ],'SKU');
+  mkC('pp-c2','line',L,[
+    {label:'DSI',data:filt(G.dsi).data,borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,.08)',borderWidth:2,pointRadius:2,fill:true,tension:.3}
+  ],'Hari');
+  mkC('pp-c3','line',L,[
+    {label:'WIP',data:filt(G.wip).data.map(v=>v?Math.round(v/1000):null),borderColor:'#059669',borderWidth:2,pointRadius:2,fill:false,tension:.3},
+    {label:'OD', data:filt(G.od).data.map(v=>v?Math.round(v/1000):null), borderColor:'#d97706',borderWidth:2,pointRadius:2,fill:false,tension:.3}
+  ],'Ribu Pcs');
+
+  const tbody=document.getElementById('pp-tbl');
+  tbody.innerHTML=L.map(d=>{
+    const i=G.dates.indexOf(d);
+    return `<tr><td>${d}</td><td>${fmt(G.overOH[i])}</td><td>${fmt(G.underOH[i])}</td><td>${fmt(G.critOH[i])}</td><td>${fmt(G.dsi[i])}</td><td>${fmt(G.wip[i])}</td><td>${fmt(G.od[i])}</td><td>${G.overWIP?fmt(G.overWIP[i]):'—'}</td><td>${G.underWIP?fmt(G.underWIP[i]):'—'}</td></tr>`;
+  }).join('')||'<tr><td colspan="9" class="empty">Tidak ada data</td></tr>';
+}
+
+// ===== PURCHASING =====
+function renderPurchasing() {
+  const {labels:L}=filt(G.poBerjalan);
+  const llat=agg(G.poLambat,'last');
+  set('pu-po',fmt(agg(G.poBerjalan,'last'))); set('pu-lat',llat?fmt(llat):'0'); set('pu-qty',fmt(agg(G.poQty,'last')));
+  const latS=document.getElementById('pu-lat-s'); if(latS){latS.className='kpi-sub '+(llat&&llat>0?'r':'g');latS.textContent='PO';}
+
+  mkC('pu-c1','bar',L,[
+    {label:'PO',data:filt(G.poBerjalan).data,backgroundColor:'rgba(124,58,237,.5)',borderColor:'#7c3aed',borderWidth:0,borderRadius:4}
+  ],'Jumlah PO');
+  mkC('pu-c2','bar',L,[
+    {label:'Qty',data:filt(G.poQty).data,backgroundColor:'rgba(37,99,235,.5)',borderColor:'#2563eb',borderWidth:0,borderRadius:4}
+  ],'Pcs');
+
+  const tbody=document.getElementById('pu-tbl');
+  tbody.innerHTML=L.map(d=>{
+    const i=G.dates.indexOf(d); const lat=G.poLambat[i],po=G.poBerjalan[i];
+    const st=lat&&lat>0?`<span class="badge br">${fmt(lat)} Terlambat</span>`:po&&po>15?`<span class="badge bw">Tinggi</span>`:`<span class="badge bg">Normal</span>`;
+    return `<tr><td>${d}</td><td>${fmt(po)}</td><td>${lat?fmt(lat):'0'}</td><td>${fmt(G.poRoll[i])}</td><td>${fmt(G.poQty[i])}</td><td>${st}</td></tr>`;
+  }).join('')||'<tr><td colspan="6" class="empty">Tidak ada data</td></tr>';
+}
+
+const PAGE_TITLES={overview:'Overview',production:'Production',dc:'Distribution Center',ppic:'PPIC & Stock',purchasing:'Purchasing'};
+function goPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  set('page-ttl',PAGE_TITLES[id]||id);
+}
+
+loadData();
+</script>
+</body>
+</html>
